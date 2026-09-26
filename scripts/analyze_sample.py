@@ -138,6 +138,16 @@ def main():
         "repos_any_unsound": sum(1 for r in repo_rows if r["any_unsound"]),
         "repos_exposed": sum(1 for r in repo_rows if r["exposed"]),
         "repos_exposed_pct_of_built_env_repos": pct(sum(1 for r in repo_rows if r["exposed"]), len(repo_rows)),
+        "minor_only_steps": sum(1 for s in built if s["verdict"] == "minor_only"),
+        "no_interpreter_steps": sum(1 for s in built if s["verdict"] == "no_interpreter"),
+        "sound_steps": sum(1 for s in built if s["verdict"] == "sound"),
+        "version_file_steps": sum(1 for s in built if s["verdict"] == "version_file"),
+        "unsound_with_restore_keys": sum(1 for s in unsound if s["restore_keys"]),
+        "unsound_with_skip_or_restore_keys": sum(1 for s in unsound if s["skip_on_hit"] or s["restore_keys"]),
+        "sound_with_skip": sum(1 for s in built if s["verdict"] == "sound" and s["skip_on_hit"]),
+        "pct_workflow_repos_caching_built_env": t1[-1]["pct_of_workflow_repos_caching_built_env"],
+        "frame_size": sum(1 for _ in open(os.path.join(RAW, "frame.jsonl"))),
+        "repos_any_unsound_pct_of_built_env_repos": pct(sum(1 for r in repo_rows if r["any_unsound"]), len(repo_rows)),
         "sound_steps_with_restore_key_fallback_hazard": sum(
             1 for s in built if s["verdict"] == "sound" and s["restore_key_drops_interp"]),
     }
