@@ -1,0 +1,28 @@
+{
+  "condition": "E1",
+  "tool": "pip",
+  "key": "exp-36269818253-1-E1-pip-3.12",
+  "cache_hit": true,
+  "cache_matched_key": "exp-36269818253-1-E1-pip-3.12",
+  "leg_requested": "3.12",
+  "leg_actual": "3.12.14",
+  "seed": {
+    "python_version": "3.12.10",
+    "python_path": "/opt/hostedtoolcache/Python/3.12.10/x64/bin/python",
+    "image_version": "20260920.314.1"
+  },
+  "rc": 127,
+  "probe": null,
+  "toolcache_python": [
+    "3.10.21",
+    "3.11.16",
+    "3.12.14",
+    "3.13.15",
+    "3.14.7"
+  ],
+  "image_os": "ubuntu24",
+  "image_version": "20260920.314.1",
+  "run_id": "36269818253",
+  "run_attempt": "1",
+  "log_tail": "+ tool=pip\n+ cd fixture\n+ case \"$tool\" in\n+ source .venv/bin/activate\n++ deactivate nondestructive\n++ '[' -n '' ']'\n++ '[' -n '' ']'\n++ hash -r\n++ '[' -n '' ']'\n++ unset VIRTUAL_ENV\n++ unset VIRTUAL_ENV_PROMPT\n++ '[' '!' nondestructive = nondestructive ']'\n++ case \"$(uname)\" in\n+++ uname\n++ export VIRTUAL_ENV=/home/runner/work/cache-key-soundness/cache-key-soundness/fixture/.venv\n++ VIRTUAL_ENV=/home/runner/work/cache-key-soundness/cache-key-soundness/fixture/.venv\n++ _OLD_VIRTUAL_PATH=/opt/hostedtoolcache/Python/3.12.14/x64/bin:/opt/hostedtoolcache/Python/3.12.14/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin\n++ PATH=/home/runner/work/cache-key-soundness/cache-key-soundness/fixture/.venv/bin:/opt/hostedtoolcache/Python/3.12.14/x64/bin:/opt/hostedtoolcache/Python/3.12.14/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin\n++ export PATH\n++ VIRTUAL_ENV_PROMPT='(.venv) '\n++ export VIRTUAL_ENV_PROMPT\n++ '[' -n '' ']'\n++ '[' -z '' ']'\n++ _OLD_VIRTUAL_PS1=\n++ PS1='((.venv) ) '\n++ export PS1\n++ hash -r\n+ pytest -q\nscripts/run_workload.sh: line 8: /home/runner/work/cache-key-soundness/cache-key-soundness/fixture/.venv/bin/pytest: cannot execute: required file not found\n"
+}

@@ -1,0 +1,5 @@
+condition,pip,poetry,uv
+C0,correct_miss,correct_miss,correct_miss
+E1,loud_failure,loud_failure,self_healed
+E2,silent_wrong,silent_wrong,silent_wrong
+E3,silent_wrong,correct_miss,correct_miss
