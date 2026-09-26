@@ -10,6 +10,7 @@
   "repos_with_manual_bust": 4,
   "repos_with_version_literal": 2,
   "repos_with_any_key_change": 45,
+  "repos_with_increment_comment": 2,
   "commits_adds_interpreter": 18,
   "commits_manual_bust": 10,
   "commits_version_literal": 4,

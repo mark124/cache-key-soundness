@@ -9,7 +9,7 @@
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
 \usepackage[numbers]{natbib}
-\lstset{basicstyle=\ttfamily\footnotesize,columns=fullflexible,breaklines=true,frame=single}
+\lstset{basicstyle=\ttfamily\footnotesize,columns=flexible,keepspaces=true,breaklines=true,frame=single}
 
 \IfFileExists{numbers.tex}{\input{numbers.tex}}{%
   \newcommand{\ck}[1]{\textbf{??}}\newcommand{\repourl}{\url{https://github.com/mark124/cache-key-soundness}}%
@@ -292,11 +292,11 @@ enough.
 \subsection{RQ3: How keys change}
 \label{sec:rq3}
 
-We scanned \ck{t4.workflow_files_scanned} workflow files and found
-\ck{t4.key_changes} distinct changes to a cache key, in
-\ck{t4.repos_with_any_key_change} repositories. We count a change once even
-when merge commits repeat it. \ck{t4.commits_adds_interpreter} commits in
-\ck{t4.repos_with_adds_interpreter} repositories added an interpreter version
+We scanned \ck{rq3.workflow_files_scanned} workflow files and found
+\ck{rq3.key_changes} distinct changes to a cache key, in
+\ck{rq3.repos_with_any_key_change} repositories. We count a change once even
+when merge commits repeat it. \ck{rq3.commits_adds_interpreter} commits in
+\ck{rq3.repos_with_adds_interpreter} repositories added an interpreter version
 to a key or made it more exact. Several say so in their message:
 \href{https://github.com/andreoliwa/nitpick/commit/731d6ebb36a3e3ac39d2574e1abb468b59f0ffe1}{``ci: include Python version in cache key''},
 \href{https://github.com/eigenein/protobuf/commit/befb022dcdc84f5ab9936ca793a27d2776a2c015}{``Fix: use OS and Python version in the cache's key''},
@@ -305,14 +305,14 @@ and, closest to condition E1,
 That last commit replaces \texttt{matrix.python-version} with setup-python's
 output, the fix our linter proposes.
 
-\ck{t4.commits_manual_bust} commits in \ck{t4.repos_with_manual_bust}
-repositories were manual busts. In two of them the key carries a standing
+\ck{rq3.commits_manual_bust} commits in \ck{rq3.repos_with_manual_bust}
+repositories were manual busts. In \ck{rq3.repos_with_increment_comment} of them the key carries a standing
 comment, \texttt{\# increment to reset cache}, so invalidation by hand is part
-of the design. Another \ck{t4.commits_version_literal} commits changed a
+of the design. Another \ck{rq3.commits_version_literal} commits changed a
 version number written into the key by hand, for example from
-\texttt{py3.9} to \texttt{py3.12}. The remaining \ck{t4.commits_other} commits
+\texttt{py3.9} to \texttt{py3.12}. The remaining \ck{rq3.commits_other} commits
 made other edits: renames, lock-file changes, and restructuring. Every change
-links to its commit in \texttt{results/table4\_key\_changes.csv}.
+links to its commit in \texttt{results/rq3\_key\_changes.csv}.
 
 These counts are small, and a commit message rarely says what went wrong. They
 show that maintainers do meet this problem, and that the repair varies:
@@ -350,13 +350,13 @@ and to Rust's \texttt{target/} directory, which we did not measure.
 
 \begin{table}[t]\centering\small
 \caption{Classifier agreement with hand labels on a seeded random sample of
-cache steps. Produced by \texttt{make table5} from
-\texttt{results/table5\_validation.csv}.}
+cache steps. Produced by \texttt{make table4} from
+\texttt{results/table4\_validation.csv}.}
 \label{tab:val}
 \begin{tabular}{lrr}\toprule
 Field & Labelled & Agreement (\%) \\\midrule
-Path kind & \ck{t5.path_kind_labelled} & \ck{t5.path_kind_agreement_pct} \\
-Verdict & \ck{t5.verdict_labelled} & \ck{t5.verdict_agreement_pct} \\
+Path kind & \ck{t4.path_kind_labelled} & \ck{t4.path_kind_agreement_pct} \\
+Verdict & \ck{t4.verdict_labelled} & \ck{t4.verdict_agreement_pct} \\
 \bottomrule\end{tabular}
 \end{table}
 

@@ -48,6 +48,10 @@ def fetch(run_ids):
         print(f"run {rid}: {len(glob.glob(os.path.join(d, 'outcome-*.json')))} outcomes")
 
 
+LABEL = {"correct_miss": "correct", "self_healed": "self-healed",
+         "loud_failure": "loud failure", "silent_wrong": "silent wrong"}
+
+
 def classify(o: dict) -> str:
     if o["rc"] != 0:
         return "loud_failure"
@@ -88,7 +92,7 @@ def table():
         w = csv.writer(f, lineterminator="\n")
         w.writerow(["condition", "pip", "poetry", "uv"])
         for c in conds:
-            w.writerow([c] + ["/".join(sorted(cell[(c, t)])) or "-" for t in ("pip", "poetry", "uv")])
+            w.writerow([c] + ["/".join(sorted(LABEL[o] for o in cell[(c, t)])) or "-" for t in ("pip", "poetry", "uv")])
     oc = Counter(r["outcome"] for r in rows)
     summary = {"runs": len({r["run_id"] for r in rows}), "outcomes": len(rows),
                **{f"n_{k}": oc.get(k, 0) for k in ("correct_miss", "self_healed", "loud_failure", "silent_wrong")},

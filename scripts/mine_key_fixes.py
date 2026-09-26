@@ -16,7 +16,7 @@ each key change:
   python scripts/mine_key_fixes.py fetch    (network; GitHub REST)
      -> data/raw/key_changes.jsonl
   python scripts/mine_key_fixes.py table    (offline)
-     -> results/table4_key_changes.csv, results/table4_summary.json
+     -> results/rq3_key_changes.csv, results/rq3_summary.json
 """
 from __future__ import annotations
 
@@ -129,7 +129,7 @@ def table():
                          "old_signal": _signal(c["old"]), "new_signal": _signal(c["new"]),
                          "old_key": c["old"], "new_key": c["new"], "message": c["message"],
                          "url": c["url"]})
-    with open(os.path.join(RES, "table4_key_changes.csv"), "w", newline="", encoding="utf-8") as f:
+    with open(os.path.join(RES, "rq3_key_changes.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["repo", "file", "sha", "date", "kind", "old_signal", "new_signal",
                                           "old_key", "new_key", "message", "url"], lineterminator="\n")
         w.writeheader()
@@ -142,10 +142,12 @@ def table():
                "repos_with_manual_bust": len({r["repo"] for r in rows if r["kind"] == "manual_bust"}),
                "repos_with_version_literal": len({r["repo"] for r in rows if r["kind"] == "version_literal"}),
                "repos_with_any_key_change": len({r["repo"] for r in rows}),
+               "repos_with_increment_comment": len({r["repo"] for r in rows if r["kind"] == "manual_bust"
+                                                    and "increment to reset cache" in r["new_key"]}),
                **{f"commits_{k}": len({(r["repo"], r["sha"]) for r in rows if r["kind"] == k})
                   for k in ("adds_interpreter", "manual_bust", "version_literal", "other")}}
     assert sum(kinds.values()) == len(rows)
-    with open(os.path.join(RES, "table4_summary.json"), "w", newline="\n") as f:
+    with open(os.path.join(RES, "rq3_summary.json"), "w", newline="\n") as f:
         json.dump(summary, f, indent=2)
     print(json.dumps(summary, indent=2))
 

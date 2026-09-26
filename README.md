@@ -30,8 +30,8 @@ committed under `data/`.
 | Numbers in abstract and §5.1 | `make table2` | `results/headline.json` |
 | Per-step classification | `make table2` | `results/cache_steps.csv` |
 | Table 3 (controlled experiment) | `make table3` → `scripts/collect_harm.py table` | `results/table3_matrix.csv`, `results/table3_harm.csv`, `results/table3_summary.json` |
-| §5.3 (key history) | `make table4` → `scripts/mine_key_fixes.py table` | `results/table4_key_changes.csv`, `results/table4_summary.json` |
-| Table 5 (classifier validation) | `make table5` → `scripts/validate_classifier.py` | `results/table5_validation.csv`, `results/table5_summary.json` |
+| Table 4 (classifier validation) | `make table4` → `scripts/validate_classifier.py` | `results/table4_validation.csv`, `results/table4_summary.json` |
+| §5.3 (key history, no table) | `make rq3` → `scripts/mine_key_fixes.py table` | `results/rq3_key_changes.csv`, `results/rq3_summary.json` |
 | Every `\ck{...}` number in the PDF | `python scripts/make_numbers.py v1.0` | `paper/numbers.tex` |
 
 Every number in the PDF is a hyperlink to the line of the results file it
