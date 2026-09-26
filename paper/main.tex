@@ -201,7 +201,8 @@ read up to 40 commits of its history and extracted every change to a
 a stronger version signal than the old one. It is a \emph{manual bust} if the
 two keys differ only in a number, as in \texttt{v1} to \texttt{v2}. That is the
 CI form of \texttt{make clean}: it discards the cache without saying what was
-wrong with it.
+wrong with it. If the changed number is a version (\texttt{3.8} to
+\texttt{3.9}), the change is a \emph{version literal} update instead.
 
 \section{Results}
 
@@ -292,13 +293,30 @@ enough.
 \label{sec:rq3}
 
 We scanned \ck{t4.workflow_files_scanned} workflow files and found
-\ck{t4.key_changes} changes to a cache key. \ck{t4.kind_adds_interpreter}
-added or strengthened the interpreter version, in
-\ck{t4.repos_with_adds_interpreter} repositories. \ck{t4.kind_manual_bust} were
-manual busts, in \ck{t4.repos_with_manual_bust} repositories. The remaining
-\ck{t4.kind_other} were other edits. Every change links to its commit in
-\texttt{results/table4\_key\_changes.csv}.
-% INTERPRETATION: write after reading the commit messages in table4.
+\ck{t4.key_changes} distinct changes to a cache key, in
+\ck{t4.repos_with_any_key_change} repositories. We count a change once even
+when merge commits repeat it. \ck{t4.commits_adds_interpreter} commits in
+\ck{t4.repos_with_adds_interpreter} repositories added an interpreter version
+to a key or made it more exact. Several say so in their message:
+\href{https://github.com/andreoliwa/nitpick/commit/731d6ebb36a3e3ac39d2574e1abb468b59f0ffe1}{``ci: include Python version in cache key''},
+\href{https://github.com/eigenein/protobuf/commit/befb022dcdc84f5ab9936ca793a27d2776a2c015}{``Fix: use OS and Python version in the cache's key''},
+and, closest to condition E1,
+\href{https://github.com/python-zeroconf/python-zeroconf/commit/0e201f781c96ea77b7388f306f54b21101c6833f}{``ci: key venv cache on resolved python patch version''}.
+That last commit replaces \texttt{matrix.python-version} with setup-python's
+output, the fix our linter proposes.
+
+\ck{t4.commits_manual_bust} commits in \ck{t4.repos_with_manual_bust}
+repositories were manual busts. In two of them the key carries a standing
+comment, \texttt{\# increment to reset cache}, so invalidation by hand is part
+of the design. Another \ck{t4.commits_version_literal} commits changed a
+version number written into the key by hand, for example from
+\texttt{py3.9} to \texttt{py3.12}. The remaining \ck{t4.commits_other} commits
+made other edits: renames, lock-file changes, and restructuring. Every change
+links to its commit in \texttt{results/table4\_key\_changes.csv}.
+
+These counts are small, and a commit message rarely says what went wrong. They
+show that maintainers do meet this problem, and that the repair varies:
+some add the interpreter to the key, and others bump a counter each time.
 
 \section{Implications}
 

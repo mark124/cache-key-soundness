@@ -1,0 +1,17 @@
+{
+  "workflow_files_scanned": 182,
+  "key_changes": 145,
+  "files_with_any_key_change": 67,
+  "kind_adds_interpreter": 19,
+  "kind_manual_bust": 16,
+  "kind_version_literal": 5,
+  "kind_other": 105,
+  "repos_with_adds_interpreter": 17,
+  "repos_with_manual_bust": 4,
+  "repos_with_version_literal": 2,
+  "repos_with_any_key_change": 45,
+  "commits_adds_interpreter": 18,
+  "commits_manual_bust": 10,
+  "commits_version_literal": 4,
+  "commits_other": 74
+}

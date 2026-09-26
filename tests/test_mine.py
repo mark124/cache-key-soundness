@@ -25,3 +25,11 @@ def test_pairs_and_kinds():
 
 def test_other():
     assert classify_change("a-${{ hashFiles('x') }}", "b-${{ hashFiles('y') }}") == "other"
+
+
+def test_version_literal_is_not_a_bust():
+    assert classify_change("poetry-3.8-${{ hashFiles('a') }}", "poetry-3.9-${{ hashFiles('a') }}") == "version_literal"
+    assert classify_change("yarn-12.x-k", "yarn-16.x-k") == "version_literal"
+    assert classify_change("poetry-ubuntu-0  # increment to reset cache",
+                           "poetry-ubuntu-1  # increment to reset cache") == "manual_bust"
+    assert classify_change("v3-tests-${{ hashFiles('setup.py') }}", "v4-tests-${{ hashFiles('setup.py') }}") == "manual_bust"

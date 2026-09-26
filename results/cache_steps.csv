@@ -985,7 +985,7 @@ fi
 PostHog/posthog,s4,57ca357730843205c2d659098ac8e4c5e07a6698,ci-python.yml,code-quality,12,mypy-cache,actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306,.mypy_cache,"${{ steps.mypy-cache-key.outputs.prefix }}-${{ github.run_id }}-${{ github.run_attempt }}  #computed-by: python_version=$(python -c 'import platform; print(platform.python_version())')
 mypy_version=$(python -c 'from importlib.metadata import version; print(version(""mypy""))')
 echo ""prefix=mypy-v3-${{ runner.os }}-${{ runner.arch }}-${python_version}-${mypy_version}-${{ hashFiles('uv.lock', '**/pyproject.toml', '**/mypy.ini') }}"" >> ""$GITHUB_OUTPUT""
-",${{ steps.mypy-cache-key.outputs.prefix }}-,False,other,False,full,exported:mypy_version,True,True,True,not_applicable,
+",${{ steps.mypy-cache-key.outputs.prefix }}-,False,other,False,full,exported:python_version,True,True,True,not_applicable,
 PostHog/posthog,s4,57ca357730843205c2d659098ac8e4c5e07a6698,ci-rust-flags-integration.yml,rust-flags-integration,11,,actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306,schema.sql.gz,"${{ steps.schema-key.outputs.migrations_key || steps.schema-key.outputs.key }}  #computed-by: # HEAD is the synthetic merge commit; HEAD^2 is the PR branch tip.
 MERGE_BASE=$(git merge-base HEAD^2 ""origin/${BASE_REF}"" 2>/dev/null || echo """")
 if [ -z ""$MERGE_BASE"" ]; then

@@ -6,9 +6,11 @@ each key change:
 
   adds_interpreter  the new key carries a Python-version signal the old one
                     lacked, or a stronger one (none -> minor -> full)
-  manual_bust       the keys differ only in a number (v1 -> v2, cache-3 ->
+  manual_bust       only a bare counter changed (v1 -> v2, cache-3 ->
                     cache-4): the CI equivalent of `make clean`, forcing a
                     rebuild without saying why the old entry went bad
+  version_literal   only numbers changed and one is a version (3.8 -> 3.9):
+                    a version tracked by hand in the key
   other             anything else (renames, lockfile changes, restructuring)
 
   python scripts/mine_key_fixes.py fetch    (network; GitHub REST)
@@ -41,11 +43,26 @@ def _signal(key):
     return interp_signal(key, set(), [], {})[0]
 
 
+NUMTOK = re.compile(r"(?<![\w.])([A-Za-z]*)(\d+(?:\.\d+)*)(\.x)?")
+
+
 def classify_change(old: str, new: str) -> str:
+    """adds_interpreter > manual_bust > version_literal > other.
+
+    manual_bust:     only bare counters changed (v1->v2, cache-3->cache-4)
+    version_literal: only numbers changed, and at least one is a version
+                     (3.8->3.9, 12.x->16.x, py3.9->py3.12): the key tracks a
+                     version by hand
+    """
     if RANK[_signal(new)] > RANK[_signal(old)]:
         return "adds_interpreter"
-    if re.sub(r"\d+", "#", old) == re.sub(r"\d+", "#", new) and old != new:
-        return "manual_bust"
+    if old != new and re.sub(r"\d+", "#", old) == re.sub(r"\d+", "#", new):
+        a, b = NUMTOK.findall(old), NUMTOK.findall(new)
+        changed = [(x, y) for x, y in zip(a, b) if x != y]
+        if changed and all(x[0].lower() in ("", "v") and "." not in x[1] and not x[2]
+                           for pair in changed for x in pair):
+            return "manual_bust"
+        return "version_literal"
     return "other"
 
 
@@ -97,10 +114,16 @@ def fetch():
 def table():
     rows = []
     files = 0
+    seen = set()
     for line in open(os.path.join(RAW, "key_changes.jsonl")):
         r = json.loads(line)
         files += 1
         for c in r["changes"]:
+            # a change reappears in every merge commit that carries it; count it once
+            ident = (r["repo"], r["file"], c["old"], c["new"])
+            if ident in seen:
+                continue
+            seen.add(ident)
             rows.append({"repo": r["repo"], "file": r["file"], "sha": c["sha"], "date": c["date"][:10],
                          "kind": classify_change(c["old"], c["new"]),
                          "old_signal": _signal(c["old"]), "new_signal": _signal(c["new"]),
@@ -114,9 +137,13 @@ def table():
     kinds = Counter(r["kind"] for r in rows)
     summary = {"workflow_files_scanned": files, "key_changes": len(rows),
                "files_with_any_key_change": len({(r["repo"], r["file"]) for r in rows}),
-               **{f"kind_{k}": kinds.get(k, 0) for k in ("adds_interpreter", "manual_bust", "other")},
+               **{f"kind_{k}": kinds.get(k, 0) for k in ("adds_interpreter", "manual_bust", "version_literal", "other")},
                "repos_with_adds_interpreter": len({r["repo"] for r in rows if r["kind"] == "adds_interpreter"}),
-               "repos_with_manual_bust": len({r["repo"] for r in rows if r["kind"] == "manual_bust"})}
+               "repos_with_manual_bust": len({r["repo"] for r in rows if r["kind"] == "manual_bust"}),
+               "repos_with_version_literal": len({r["repo"] for r in rows if r["kind"] == "version_literal"}),
+               "repos_with_any_key_change": len({r["repo"] for r in rows}),
+               **{f"commits_{k}": len({(r["repo"], r["sha"]) for r in rows if r["kind"] == k})
+                  for k in ("adds_interpreter", "manual_bust", "version_literal", "other")}}
     assert sum(kinds.values()) == len(rows)
     with open(os.path.join(RES, "table4_summary.json"), "w", newline="\n") as f:
         json.dump(summary, f, indent=2)
