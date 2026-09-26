@@ -375,15 +375,17 @@ environment was valid, just for a different Python.
 \emph{The classifier.} It reads workflow text with patterns. It doesn't follow
 keys set inside reusable workflows or composite actions, and it can misread
 unusual folder names. Table~\ref{tab:val} reports how often it agreed with
-hand labels. \emph{The experiment.} It uses one test project, one runner
+hand labels. The hand labels come from one person, the author.
+\emph{The experiments.} The main experiment uses one test project, one runner
 image, one date and fixed tool versions. The results matched across runs, but
 other versions of these tools may behave differently. The timings in
 Table~\ref{tab:bench} come from one set of packages on one day, and runner
-timing is noisy, so treat them as rough sizes, not exact costs. \emph{The sample.} It
-comes from GitHub search, which returns at most 300 results per query, so it
-isn't a uniform sample of GitHub. We only looked at Python. The same problem
-applies to \texttt{node\_modules} with compiled add-ons and to Rust's
-\texttt{target/} folder, which we didn't measure.
+timing is noisy, so treat them as rough sizes. \emph{The sample.} It comes from
+GitHub search, which returns at most 300 results per query, so it isn't a
+uniform sample of GitHub. We saw each workflow only at its latest commit, and
+the history study read at most 40 commits per file. We only looked at Python.
+The same problem may apply to \texttt{node\_modules} with compiled add-ons and
+to Rust's \texttt{target/} folder. We didn't check.
 
 \begin{table}[t]\centering\small
 \caption{How often the classifier agreed with hand labels, on a random sample
