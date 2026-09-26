@@ -288,8 +288,9 @@ image no longer has. Under pip the test command failed with \emph{cannot
 execute: required file not found}. Poetry saw the environment was broken and
 recreated it, but the install step had been skipped, so \texttt{pytest} was
 missing. uv spotted the broken link, rebuilt the environment and passed. A
-failure like this is visible, but someone still has to work out why. The usual
+failure like this is visible, but someone still has to work out why. One
 fix is to change the key, which RQ3 looks at.
+
 
 \emph{A restore key without the version (E3) gave pip the wrong Python even
 though the install step ran.} Running \texttt{python -m venv .venv} over an
