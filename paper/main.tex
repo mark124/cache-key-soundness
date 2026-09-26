@@ -110,7 +110,8 @@ environment built on 3.12.10 links to
 \texttt{/opt/hostedtoolcache/Python/3.12.10/x64/bin/python}. That path doesn't
 exist on this image. An environment built on 3.11 links to the 3.11 install,
 and that one does exist, because the image carries several minor versions side
-by side.
+by side. So a patch mismatch leaves a broken link, while a minor mismatch
+leaves a working link to the wrong Python.
 
 \section{When Is a Cache Key Complete?}
 \label{sec:sound}
