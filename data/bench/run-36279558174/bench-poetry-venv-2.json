@@ -1,0 +1,9 @@
+{
+  "tool": "poetry",
+  "mode": "venv",
+  "rep": 2,
+  "seconds": 2.06,
+  "cache_hit": "true",
+  "image_version": "20260920.314.1",
+  "run_id": "36279558174"
+}

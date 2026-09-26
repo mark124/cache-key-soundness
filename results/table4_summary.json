@@ -1,0 +1,15 @@
+{
+  "timed_jobs": 45,
+  "pip_none_median_s": 29.7,
+  "pip_download_median_s": 27.6,
+  "pip_venv_median_s": 2.5,
+  "pip_download_minus_venv_s": 25.1,
+  "poetry_none_median_s": 8.7,
+  "poetry_download_median_s": 8.7,
+  "poetry_venv_median_s": 2.5,
+  "poetry_download_minus_venv_s": 6.2,
+  "uv_none_median_s": 1.2,
+  "uv_download_median_s": 1.9,
+  "uv_venv_median_s": 2.0,
+  "uv_download_minus_venv_s": -0.1
+}

@@ -1,0 +1,10 @@
+tool,mode,n,median_s,min_s,max_s
+pip,none,5,29.7,21.0,30.3
+pip,download,5,27.6,18.8,31.0
+pip,venv,5,2.5,2.2,3.7
+poetry,none,5,8.7,4.5,9.7
+poetry,download,5,8.7,8.2,9.7
+poetry,venv,5,2.5,1.6,3.4
+uv,none,5,1.2,0.9,1.4
+uv,download,5,1.9,1.8,2.4
+uv,venv,5,2.0,1.3,3.3

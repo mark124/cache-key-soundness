@@ -44,7 +44,7 @@ def lint(paths: list[str]) -> int:
 
 def reproduce() -> int:
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    for script in ["scripts/analyze_sample.py", "scripts/collect_harm.py table",
+    for script in ["scripts/analyze_sample.py", "scripts/collect_harm.py table", "scripts/collect_bench.py table",
                    "scripts/validate_classifier.py", "scripts/mine_key_fixes.py table"]:
         parts = script.split()
         path = os.path.join(here, parts[0])

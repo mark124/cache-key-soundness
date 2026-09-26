@@ -107,6 +107,10 @@ def main():
                "restore_keys_drop_interpreter"],
               ["Key verdict", "Steps", r"\%", "Skip on hit", "Deps hashed", "OS in key", "Unsafe fallback"],
               "table2.tex")
+    csv_table(tag, "results/table4_bench.csv",
+              ["tool", "mode", "median_s", "min_s", "max_s"],
+              ["Tool", "Strategy", "Median (s)", "Min (s)", "Max (s)"], "table4.tex",
+              align="llrrr")
     csv_table(tag, "results/table3_matrix.csv",
               ["condition", "pip", "poetry", "uv"], ["Condition", "pip", "Poetry", "uv"], "table3.tex",
               align="llll")

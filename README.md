@@ -30,7 +30,8 @@ committed under `data/`.
 | Numbers in abstract and §5.1 | `make table2` | `results/headline.json` |
 | Per-step classification | `make table2` | `results/cache_steps.csv` |
 | Table 3 (controlled experiment) | `make table3` → `scripts/collect_harm.py table` | `results/table3_matrix.csv`, `results/table3_harm.csv`, `results/table3_summary.json` |
-| Table 4 (classifier validation) | `make table4` → `scripts/validate_classifier.py` | `results/table4_validation.csv`, `results/table4_summary.json` |
+| Table 4 (timing of cache strategies) | `make table4` → `scripts/collect_bench.py table` | `results/table4_bench.csv`, `results/table4_bench_raw.csv`, `results/table4_summary.json` |
+| Table 5 (classifier validation) | `make table5` → `scripts/validate_classifier.py` | `results/table5_validation.csv`, `results/table5_summary.json` |
 | §5.3 (key history, no table) | `make rq3` → `scripts/mine_key_fixes.py table` | `results/rq3_key_changes.csv`, `results/rq3_summary.json` |
 | Every `\ck{...}` number in the PDF | `python scripts/make_numbers.py v1.0` | `paper/numbers.tex` |
 
@@ -47,6 +48,7 @@ comes from, at tag `v1.0`.
 | `data/raw/cache_workflows.jsonl.gz` | full text of each workflow file that mentions `actions/cache`, at that SHA |
 | `data/raw/key_changes.jsonl` | commits that changed a cache `key:` line in those files |
 | `data/harm/run-*/` | outcome records downloaded from the public `harm` workflow runs, with run URLs |
+| `data/bench/run-*/` | timing records from the public `bench` workflow run (Table 4), with the run URL |
 | `data/validation/labels.csv` | hand labels for the classifier check; rubric in `RUBRIC.md` |
 
 ## Re-collecting from scratch (network, not needed to reproduce)

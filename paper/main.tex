@@ -336,9 +336,31 @@ bump a counter each time.
 \paragraph{For maintainers.} Put the Python version the job actually got into
 the key. setup-python gives it to you as an output. A \texttt{matrix} value like
 \texttt{"3.12"} is what the job \emph{asked for}. It isn't necessarily what got
-\emph{installed}. Restore keys need it too. Or cache the package manager's
-download folder and let the environment rebuild. That needs no Python version
-in the key.
+\emph{installed}. Restore keys need it too.
+
+Could you avoid the problem by caching only the package manager's download
+folder and rebuilding the environment each time? That needs no Python version
+in the key, but it isn't free. We timed it (\texttt{bench.yml}): a typical
+data-project stack of 12 pinned packages, three strategies, three tools, five
+runs each, \ck{t4.timed_jobs} timed jobs in all. Table~\ref{tab:bench} shows
+the time from the cache restore to the end of the install step. For pip,
+restoring the built environment took \ck{t4.pip_venv_median_s}~s, and rebuilding
+from the download cache took \ck{t4.pip_download_median_s}~s. For Poetry it was
+\ck{t4.poetry_venv_median_s}~s against \ck{t4.poetry_download_median_s}~s. uv
+was fast every way: \ck{t4.uv_none_median_s}~s with no cache at all. So for pip
+and Poetry, caching the built environment is worth keeping, with the exact
+Python version in the key. For uv, caching the environment gains little.
+
+\begin{table}[t]\centering\small
+\caption{Seconds from cache restore to the end of the install step, five runs
+per row. \emph{none}: no cache. \emph{download}: the package manager's download
+folder is restored and the environment rebuilt. \emph{venv}: the built
+environment is restored and the install step skipped. Produced by
+\texttt{make table4} from \texttt{results/table4\_bench.csv}; every timed job
+is in \texttt{results/table4\_bench\_raw.csv}.}
+\label{tab:bench}
+\IfFileExists{table4.tex}{\input{table4.tex}}{\textit{(pending)}}
+\end{table}
 
 \paragraph{For tool builders.} Workflow linters check syntax, types and
 security. Neither of the two we looked at (actionlint and zizmor) checks
@@ -355,7 +377,9 @@ keys set inside reusable workflows or composite actions, and it can misread
 unusual folder names. Table~\ref{tab:val} reports how often it agreed with
 hand labels. \emph{The experiment.} It uses one test project, one runner
 image, one date and fixed tool versions. The results matched across runs, but
-other versions of these tools may behave differently. \emph{The sample.} It
+other versions of these tools may behave differently. The timings in
+Table~\ref{tab:bench} come from one set of packages on one day, and runner
+timing is noisy, so treat them as rough sizes, not exact costs. \emph{The sample.} It
 comes from GitHub search, which returns at most 300 results per query, so it
 isn't a uniform sample of GitHub. We only looked at Python. The same problem
 applies to \texttt{node\_modules} with compiled add-ons and to Rust's
@@ -363,13 +387,13 @@ applies to \texttt{node\_modules} with compiled add-ons and to Rust's
 
 \begin{table}[t]\centering\small
 \caption{How often the classifier agreed with hand labels, on a random sample
-of cache steps drawn with a fixed seed. Produced by \texttt{make table4} from
-\texttt{results/table4\_validation.csv}.}
+of cache steps drawn with a fixed seed. Produced by \texttt{make table5} from
+\texttt{results/table5\_validation.csv}.}
 \label{tab:val}
 \begin{tabular}{lrr}\toprule
 Field & Labelled & Agreement (\%) \\\midrule
-Path kind & \ck{t4.path_kind_labelled} & \ck{t4.path_kind_agreement_pct} \\
-Verdict & \ck{t4.verdict_labelled} & \ck{t4.verdict_agreement_pct} \\
+Path kind & \ck{t5.path_kind_labelled} & \ck{t5.path_kind_agreement_pct} \\
+Verdict & \ck{t5.verdict_labelled} & \ck{t5.verdict_agreement_pct} \\
 \bottomrule\end{tabular}
 \end{table}
 

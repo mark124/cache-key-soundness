@@ -2,7 +2,7 @@
 # committed files in data/. `make all` == `python -m cachekeys reproduce`.
 PY ?= python
 
-all: table1 table2 table3 table4 rq3
+all: table1 table2 table3 table4 table5 rq3
 
 table1 table2:            ## sample, prevalence, key composition
 	$(PY) scripts/analyze_sample.py
@@ -10,7 +10,9 @@ table3:                   ## controlled experiment outcomes (harm.yml runs)
 	$(PY) scripts/collect_harm.py table
 rq3:                      ## key changes mined from workflow history (Section 5.3)
 	$(PY) scripts/mine_key_fixes.py table
-table4:                   ## classifier vs hand labels
+table4:                   ## timing: built-env cache vs download cache (bench.yml)
+	$(PY) scripts/collect_bench.py table
+table5:                   ## classifier vs hand labels
 	$(PY) scripts/validate_classifier.py
 test:
 	$(PY) -m pytest -q tests
@@ -21,4 +23,4 @@ fetch-sample:             ## GitHub search + GraphQL; needs a token
 fetch-history:
 	$(PY) scripts/mine_key_fixes.py fetch
 
-.PHONY: all table1 table2 table3 table4 rq3 test fetch-sample fetch-history
+.PHONY: all table1 table2 table3 table4 table5 rq3 test fetch-sample fetch-history

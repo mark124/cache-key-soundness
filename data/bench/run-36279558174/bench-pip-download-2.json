@@ -1,0 +1,9 @@
+{
+  "tool": "pip",
+  "mode": "download",
+  "rep": 2,
+  "seconds": 31.0,
+  "cache_hit": "true",
+  "image_version": "20260920.314.1",
+  "run_id": "36279558174"
+}
