@@ -1,0 +1,133 @@
+# Timing experiment: what does the safe alternative cost?
+#
+#   none      no cache: build the environment from the network
+#   download  restore only the package manager's download folder, then
+#             build the environment (the strategy the paper recommends)
+#   venv      restore the built environment and skip install on a hit
+#             (the strategy most sampled repositories use)
+#
+# Measured: wall-clock seconds from just before the cache restore to just
+# after the install step. Tool setup is not timed. Five repeats per cell.
+name: bench
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  PY: "3.12"
+  POETRY_VERSION: "2.5.1"
+  UV_VERSION: "0.12.19"
+  UV_PYTHON_DOWNLOADS: never
+  PIP_CACHE_DIR: /home/runner/.cache/pip
+  UV_CACHE_DIR: /home/runner/.cache/uv
+  POETRY_CACHE_DIR: /home/runner/.cache/pypoetry
+jobs:
+  seed:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        tool: [pip, poetry, uv]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - id: py
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "${{ env.PY }}"}
+      - if: matrix.tool == 'uv'
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with: {version: "${{ env.UV_VERSION }}", enable-cache: false}
+      - if: matrix.tool == 'poetry'
+        run: pipx install "poetry==${POETRY_VERSION}"
+      - if: matrix.tool == 'poetry'
+        run: cd bench && poetry lock
+      - if: matrix.tool == 'poetry'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: {name: poetry-lock, path: bench/poetry.lock}
+      - run: bash bench/build.sh "${{ matrix.tool }}" "${{ steps.py.outputs.python-path }}"
+      - name: download folder for this tool
+        id: dl
+        run: |
+          case "${{ matrix.tool }}" in
+            pip) echo "dir=$PIP_CACHE_DIR" >> "$GITHUB_OUTPUT" ;;
+            poetry) echo "dir=$POETRY_CACHE_DIR" >> "$GITHUB_OUTPUT" ;;
+            uv) echo "dir=$UV_CACHE_DIR" >> "$GITHUB_OUTPUT" ;;
+          esac
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.dl.outputs.dir }}
+          key: bench-${{ github.run_id }}-${{ github.run_attempt }}-dl-${{ matrix.tool }}
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: bench/.venv
+          key: bench-${{ github.run_id }}-${{ github.run_attempt }}-venv-${{ matrix.tool }}-${{ steps.py.outputs.python-version }}
+
+  measure:
+    needs: seed
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [pip, poetry, uv]
+        mode: [none, download, venv]
+        rep: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - id: py
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "${{ env.PY }}"}
+      - if: matrix.tool == 'uv'
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with: {version: "${{ env.UV_VERSION }}", enable-cache: false}
+      - if: matrix.tool == 'poetry'
+        run: pipx install "poetry==${POETRY_VERSION}"
+      - if: matrix.tool == 'poetry'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with: {name: poetry-lock, path: bench}
+      - id: dl
+        run: |
+          case "${{ matrix.tool }}" in
+            pip) echo "dir=$PIP_CACHE_DIR" >> "$GITHUB_OUTPUT" ;;
+            poetry) echo "dir=$POETRY_CACHE_DIR" >> "$GITHUB_OUTPUT" ;;
+            uv) echo "dir=$UV_CACHE_DIR" >> "$GITHUB_OUTPUT" ;;
+          esac
+      # ---- timed section starts ----
+      - run: date +%s.%N > "$RUNNER_TEMP/t0"
+      - if: matrix.mode == 'download'
+        id: rdl
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.dl.outputs.dir }}
+          key: bench-${{ github.run_id }}-${{ github.run_attempt }}-dl-${{ matrix.tool }}
+      - if: matrix.mode == 'venv'
+        id: rvenv
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: bench/.venv
+          key: bench-${{ github.run_id }}-${{ github.run_attempt }}-venv-${{ matrix.tool }}-${{ steps.py.outputs.python-version }}
+      - if: matrix.mode != 'venv' || steps.rvenv.outputs.cache-hit != 'true'
+        run: bash bench/build.sh "${{ matrix.tool }}" "${{ steps.py.outputs.python-path }}"
+      - run: date +%s.%N > "$RUNNER_TEMP/t1"
+      # ---- timed section ends ----
+      - name: check the environment works (not timed)
+        run: bench/.venv/bin/python -c "import numpy, pandas, scipy, sklearn, matplotlib, fastapi, sqlalchemy, yaml; print('ok')"
+      - name: record
+        env:
+          HIT_DL: ${{ steps.rdl.outputs.cache-hit }}
+          HIT_VENV: ${{ steps.rvenv.outputs.cache-hit }}
+        run: |
+          /usr/bin/python3 - <<'PY'
+          import json, os
+          t0 = float(open(os.path.join(os.environ["RUNNER_TEMP"], "t0")).read())
+          t1 = float(open(os.path.join(os.environ["RUNNER_TEMP"], "t1")).read())
+          rec = {"tool": "${{ matrix.tool }}", "mode": "${{ matrix.mode }}", "rep": ${{ matrix.rep }},
+                 "seconds": round(t1 - t0, 2),
+                 "cache_hit": os.environ.get("HIT_DL") or os.environ.get("HIT_VENV") or "",
+                 "image_version": os.environ.get("ImageVersion"), "run_id": os.environ.get("GITHUB_RUN_ID")}
+          json.dump(rec, open("bench-${{ matrix.tool }}-${{ matrix.mode }}-${{ matrix.rep }}.json", "w"), indent=2)
+          print(rec)
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bench-${{ matrix.tool }}-${{ matrix.mode }}-${{ matrix.rep }}
+          path: bench-${{ matrix.tool }}-${{ matrix.mode }}-${{ matrix.rep }}.json
