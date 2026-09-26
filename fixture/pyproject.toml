@@ -1,0 +1,8 @@
+[project]
+name = "cache-probe"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = ["pytest==9.1.1", "PyYAML==6.0.3"]
+
+[tool.poetry]
+package-mode = false

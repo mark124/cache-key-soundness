@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+# Two jobs:
+#   1. STRIP the two known Claude trailers (same behaviour as the global hook
+#      seeded via init.templateDir -- kept identical so this repo behaves the
+#      same as every other repo on this machine).
+#   2. BLOCK if any marker SURVIVES the strip. The global hook always exits 0,
+#      which means an unrecognised marker shape passes silently. Here it does not.
+
+msg="$1"
+[ -f "$msg" ] || exit 0
+
+MARKERS="$(git rev-parse --show-toplevel 2>/dev/null)/.githooks/claude-markers.txt"
+
+# --- 1. strip the two known trailers (keeps any human Co-Authored-By) ---
+sed -i -E '/^Co-Authored-By: Claude/d; /^Claude-Session:/d' "$msg" 2>/dev/null
+
+# trim trailing blank lines left behind
+tmp="$msg.declaude.$$"
+if sed -e :a -e '/^[[:space:]]*$/{ $d; N; ba; }' "$msg" > "$tmp" 2>/dev/null; then
+  mv "$tmp" "$msg" 2>/dev/null
+fi
+rm -f "$tmp" 2>/dev/null
+
+# --- 2. block on anything that survived ---
+[ -f "$MARKERS" ] || exit 0
+
+if [ -n "$CLAUDE_GUARD_OVERRIDE" ]; then
+  LOG="$(git rev-parse --git-dir)/claude-guard-override.log"
+  printf '%s  commit-msg  override\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+    >> "$LOG" 2>/dev/null
+  exit 0
+fi
+
+if grep -nE -f "$MARKERS" "$msg" >/dev/null 2>&1; then
+  echo ""
+  echo "  +--------------------------------------------------------------+"
+  echo "  |  COMMIT BLOCKED: attribution marker in the commit message    |"
+  echo "  +--------------------------------------------------------------+"
+  echo ""
+  grep -nE -f "$MARKERS" "$msg" | sed 's/^/      /' | head -10
+  echo ""
+  echo "  The two standard trailers are stripped automatically. This one was"
+  echo "  not recognised, so it was left alone rather than mangled."
+  echo ""
+  echo "  Edit the message and retry."
+  echo ""
+  exit 1
+fi
+
+exit 0

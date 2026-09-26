@@ -1,0 +1,82 @@
+#!/usr/bin/env sh
+# BLOCKS the commit if any staged file content carries an AI-attribution marker.
+#
+# This is the gap the commit-msg hook does not cover: commit-msg only sees the
+# message, so an attribution line inside a README, a notebook or a script
+# would sail straight through it.
+#
+# Matches attribution SIGNATURES only, never the bare words "Claude" or
+# "Anthropic" -- this repository is about AI capability disclosure and cites AI
+# vendors legitimately. A guard that fires on every vendor mention gets switched
+# off, and a switched-off guard protects nothing.
+
+TOP="$(git rev-parse --show-toplevel)"
+MARKERS="$TOP/.githooks/claude-markers.txt"
+ALLOW="$TOP/.githooks/claude-markers-allow.txt"
+[ -f "$MARKERS" ] || exit 0
+
+# is_allowed <path> -> 0 if the path is on the allowlist
+is_allowed() {
+  [ -f "$ALLOW" ] || return 1
+  grep -v '^[[:space:]]*#' "$ALLOW" 2>/dev/null \
+    | grep -v '^[[:space:]]*$' \
+    | grep -Fxq "$1" 2>/dev/null
+}
+
+if [ -n "$CLAUDE_GUARD_OVERRIDE" ]; then
+  LOG="$(git rev-parse --git-dir)/claude-guard-override.log"
+  printf '%s  pre-commit  override  %s <%s>\n' \
+    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+    "$(git config user.name)" "$(git config user.email)" >> "$LOG" 2>/dev/null
+  echo "  !! CLAUDE_GUARD_OVERRIDE set -- pre-commit guard bypassed (logged)."
+  exit 0
+fi
+
+# Staged, non-deleted files.
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$files" ] || exit 0
+
+found=0
+skipped=""
+tmp="$(git rev-parse --git-dir)/claude-guard-hits.$$"
+: > "$tmp"
+
+for f in $files; do
+  if is_allowed "$f"; then
+    skipped="$skipped $f"
+    continue
+  fi
+  # Read the STAGED blob, not the worktree copy.
+  if git show ":$f" 2>/dev/null | grep -nE -f "$MARKERS" > "$tmp.one" 2>/dev/null; then
+    found=1
+    printf '  %s\n' "$f" >> "$tmp"
+    sed 's/^/      /' "$tmp.one" | head -5 >> "$tmp"
+  fi
+done
+rm -f "$tmp.one"
+
+# Always surface the allowlist. A hole nobody can see is not a hole anyone audits.
+if [ -n "$skipped" ]; then
+  echo "  [claude-guard] allowlisted, not scanned:$skipped"
+fi
+
+if [ "$found" -eq 0 ]; then
+  rm -f "$tmp"
+  exit 0
+fi
+
+echo ""
+echo "  +--------------------------------------------------------------+"
+echo "  |  COMMIT BLOCKED: AI-attribution marker in staged content     |"
+echo "  +--------------------------------------------------------------+"
+echo ""
+cat "$tmp"
+rm -f "$tmp"
+echo ""
+echo "  This repo is public portfolio material. These markers must not"
+echo "  reach the remote. Remove the lines above and re-stage."
+echo ""
+echo "  Deliberate override (recorded in .git/claude-guard-override.log):"
+echo "      CLAUDE_GUARD_OVERRIDE=1 git commit ..."
+echo ""
+exit 1

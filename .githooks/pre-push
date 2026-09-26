@@ -1,0 +1,95 @@
+#!/usr/bin/env sh
+# LAST LINE OF DEFENCE. Blocks the push if any AI-attribution marker exists
+# anywhere in the commits being pushed -- in file content OR in a commit message.
+#
+# pre-commit can be skipped with --no-verify, and history rewritten, amended or
+# cherry-picked from elsewhere never passed through it at all. Push is the moment
+# code actually leaves the machine, so it is the only place a guarantee is worth
+# anything. This hook scans the real range being sent to the remote.
+
+TOP="$(git rev-parse --show-toplevel)"
+MARKERS="$TOP/.githooks/claude-markers.txt"
+ALLOW="$TOP/.githooks/claude-markers-allow.txt"
+[ -f "$MARKERS" ] || exit 0
+
+is_allowed() {
+  [ -f "$ALLOW" ] || return 1
+  grep -v '^[[:space:]]*#' "$ALLOW" 2>/dev/null \
+    | grep -v '^[[:space:]]*$' \
+    | grep -Fxq "$1" 2>/dev/null
+}
+
+if [ -n "$CLAUDE_GUARD_OVERRIDE" ]; then
+  LOG="$(git rev-parse --git-dir)/claude-guard-override.log"
+  printf '%s  pre-push  override  %s <%s>\n' \
+    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+    "$(git config user.name)" "$(git config user.email)" >> "$LOG" 2>/dev/null
+  echo "  !! CLAUDE_GUARD_OVERRIDE set -- pre-push guard bypassed (logged)."
+  exit 0
+fi
+
+ZERO=$(git hash-object --stdin </dev/null | tr '0-9a-f' '0')
+gitdir="$(git rev-parse --git-dir)"
+tmp="$gitdir/claude-guard-push.$$"
+: > "$tmp"
+found=0
+
+# git feeds us: <local-ref> <local-sha> <remote-ref> <remote-sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$ZERO" ] && continue          # branch deletion
+
+  if [ "$remote_sha" = "$ZERO" ]; then
+    # New branch on the remote: scan every commit not already on any other remote ref.
+    range=$(git rev-list "$local_sha" --not --remotes 2>/dev/null)
+  else
+    range=$(git rev-list "$remote_sha..$local_sha" 2>/dev/null)
+  fi
+  [ -n "$range" ] || continue
+
+  for sha in $range; do
+    # 1) the commit message
+    if git log -1 --format='%B%n%an <%ae>%n%cn <%ce>' "$sha" \
+         | grep -nE -f "$MARKERS" > "$tmp.one" 2>/dev/null; then
+      found=1
+      printf '  commit %s  MESSAGE/AUTHOR\n' "$(git rev-parse --short "$sha")" >> "$tmp"
+      sed 's/^/      /' "$tmp.one" | head -5 >> "$tmp"
+    fi
+    # 2) the content of every file this commit touched, file by file so the
+    #    allowlist applies. Scans the file AS OF this commit, not the worktree.
+    for f in $(git diff-tree --no-commit-id --name-only -r "$sha" 2>/dev/null); do
+      is_allowed "$f" && continue
+      if git show "$sha:$f" 2>/dev/null | grep -nE -f "$MARKERS" > "$tmp.one" 2>/dev/null; then
+        found=1
+        printf '  commit %s  CONTENT  %s\n' "$(git rev-parse --short "$sha")" "$f" >> "$tmp"
+        sed 's/^/      /' "$tmp.one" | head -5 >> "$tmp"
+      fi
+    done
+  done
+done
+
+rm -f "$tmp.one"
+
+if [ "$found" -eq 0 ]; then
+  rm -f "$tmp"
+  exit 0
+fi
+
+echo ""
+echo "  +--------------------------------------------------------------+"
+echo "  |  PUSH BLOCKED: AI-attribution marker in outgoing commits     |"
+echo "  +--------------------------------------------------------------+"
+echo ""
+cat "$tmp"
+rm -f "$tmp"
+echo ""
+echo "  Nothing was sent to the remote."
+echo ""
+echo "  A marker in a commit MESSAGE needs history edited, not a new commit:"
+echo "      git rebase -i <before>   # reword the offending commits"
+echo "  or, for the most recent commit only:"
+echo "      git commit --amend"
+echo ""
+echo "  Deliberate override (recorded in .git/claude-guard-override.log):"
+echo "      CLAUDE_GUARD_OVERRIDE=1 git push ..."
+echo ""
+exit 1

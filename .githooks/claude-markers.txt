@@ -1,0 +1,7 @@
+Co-[Aa]uthored-[Bb]y:.*[Cc]laude
+Claude-Session:
+Generated with \[Claude Code\]
+claude\.ai/code/session
+claude\.ai/share/
+noreply@anthropic\.com
+Generated with Claude

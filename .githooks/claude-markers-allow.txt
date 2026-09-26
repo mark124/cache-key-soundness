@@ -1,0 +1,10 @@
+# Paths permitted to contain marker strings because they ARE the guard machinery.
+# Exact repo-relative paths only, one per line. Keep this list tiny -- every
+# entry is a hole in the guard. pre-commit and pre-push both print what they
+# skipped, so an addition here is visible in every run.
+.githooks/claude-markers.txt
+.githooks/claude-markers-allow.txt
+.githooks/commit-msg
+.githooks/pre-commit
+.githooks/pre-push
+test-hooks.sh
