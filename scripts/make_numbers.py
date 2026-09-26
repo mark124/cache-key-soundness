@@ -18,7 +18,8 @@ RES = os.path.join(ROOT, "results")
 PAPER = os.path.join(ROOT, "paper")
 REPO_URL = "https://github.com/mark124/cache-key-soundness"
 SOURCES = [("h", "results/headline.json"), ("t3", "results/table3_summary.json"),
-           ("rq3", "results/rq3_summary.json"), ("t4", "results/table4_summary.json")]
+           ("rq3", "results/rq3_summary.json"), ("t4", "results/table4_summary.json"),
+           ("t5", "results/table5_summary.json")]
 
 
 def tex_escape(s: str) -> str:
