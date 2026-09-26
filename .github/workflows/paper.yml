@@ -18,6 +18,7 @@ jobs:
           root_file: main.tex
           working_directory: paper
           latexmk_use_lualatex: false
+          extra_system_packages: poppler-utils
           post_compile: "pdffonts main.pdf | tee fonts.txt; ! awk 'NR>2 && ($(NF-4)!=\"yes\" || $0 ~ / Type 3 /)' fonts.txt | grep ."
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
