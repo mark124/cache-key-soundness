@@ -11,7 +11,9 @@
 \usepackage{natbib}
 \lstset{basicstyle=\ttfamily\small,columns=fullflexible,breaklines=true,frame=single}
 
-\input{numbers.tex}
+\IfFileExists{numbers.tex}{\input{numbers.tex}}{%
+  \newcommand{\ck}[1]{\textbf{??}}\newcommand{\repourl}{\url{https://github.com/mark124/cache-key-soundness}}%
+  \newcommand{\repotag}{(untagged)}}
 
 \title{Cache Keys Are Dependency Declarations:\\
 Under-Specified Keys for Cached Python Environments in GitHub Actions}
