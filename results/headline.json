@@ -23,6 +23,7 @@
   "sound_with_skip": 55,
   "pct_workflow_repos_caching_built_env": 2.9,
   "frame_size": 14973,
+  "frame_s4": 825,
   "repos_any_unsound_pct_of_built_env_repos": 67.8,
   "sound_steps_with_restore_key_fallback_hazard": 0
 }

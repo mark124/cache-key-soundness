@@ -166,11 +166,12 @@ We drew repositories from GitHub search. We kept Python repositories that
 weren't forks or archived and had a push in the twelve months before
 26 September 2026. We split them into four groups by star count (10--99,
 100--999, 1,000--9,999, 10,000+) and ran one search per creation year in each
-group, keeping the first 300 results. That gave \ck{h.frame_size}
+group, keeping at most the first 300 results. That gave \ck{h.frame_size}
 repositories. From those we drew a random sample, with a fixed seed, of up to
-1,000 per group: \ck{h.repos_sampled} in all. For each one we downloaded every
-workflow file at the latest commit on the default branch and classified every
-cache step. The commit IDs are recorded, and every workflow file that uses
+1,000 per group: \ck{h.repos_sampled} in all. The 10,000+ group had only
+\ck{h.frame_s4} repositories, so we took all of them. For each repository we
+downloaded every file in \texttt{.github/workflows} at the latest commit on
+the default branch, and classified every step that restores a cache. The commit IDs are recorded, and every workflow file that uses
 \texttt{actions/cache} is committed to our repository.
 
 \paragraph{RQ2: What happens when such a key matches?}
@@ -179,7 +180,8 @@ job builds an environment and saves it to the cache. A \emph{restore} job then
 restores it under a key we control and runs a single test. The test imports
 PyYAML, which contains compiled code, and records which Python ran it. We test
 pip with \texttt{venv}, Poetry~2.5.1 with the environment inside the project,
-and uv~0.12.19. Each is set up the way its own documentation shows. There are
+and uv~0.12.19. Each uses its standard commands (\texttt{python -m venv} and
+\texttt{pip install}, \texttt{poetry install}, \texttt{uv sync}). There are
 four conditions:
 \begin{description}
 \item[C0] a sound key. This is the control.
@@ -200,8 +202,8 @@ action is pinned to an exact commit.
 
 \paragraph{RQ3: How do maintainers change these keys?}
 For each workflow file in the sample that caches a built environment, we read
-up to 40 commits of its history and pulled out every change to a
-\texttt{key:} line. A change \emph{adds the interpreter} if the new key has a
+its 40 most recent commits (fewer if it had fewer) and pulled out every
+edited \texttt{key:} line. A change \emph{adds the interpreter} if the new key has a
 more exact Python version than the old one. It's a \emph{manual bust} if the
 two keys differ only in a counter, such as \texttt{v1} to \texttt{v2}. That's
 the CI version of \texttt{make clean}: it throws the cache away without saying
