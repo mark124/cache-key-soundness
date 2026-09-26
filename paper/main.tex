@@ -322,13 +322,14 @@ those repositories the key carries a permanent comment,
 \texttt{\# increment to reset cache}. Resetting by hand is part of how they
 work. Another \ck{rq3.commits_version_literal} commits changed a version
 number typed into the key, for example from \texttt{py3.9} to
-\texttt{py3.12}. The other \ck{rq3.commits_other} commits were renames,
-lock-file changes and restructuring. Every change links to its commit in
+\texttt{py3.12}. The other \ck{rq3.commits_other} commits made other kinds of
+edits. Every change links to its commit in
 \texttt{results/rq3\_key\_changes.csv}.
 
-These counts are small, and commit messages rarely say what went wrong. Still,
-they show maintainers do run into this. They also fix it in different ways:
-some add the Python version to the key, and some bump a counter each time.
+These counts are small, and commit messages rarely say what went wrong. A few,
+like the three quoted above, show maintainers running into this. They also
+fix it in different ways: some add the Python version to the key, and some
+bump a counter each time.
 
 \section{What To Do About It}
 
