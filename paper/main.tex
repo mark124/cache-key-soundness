@@ -276,9 +276,11 @@ rebuilt, and tested on the Python the job asked for.
 \emph{With no version in the key (E2), every tool produced a passing build on
 the wrong Python.} The job asked for \ck{t3.E2_pip_asked}. The restored
 environment still pointed at \ck{t3.E2_pip_ran_on}, which the image also
-carries, so the tests ran there and passed. uv didn't step in, because the
-environment was valid and met the project's \texttt{requires-python}. The log
-only shows the mismatch if you read the interpreter path.
+carries, so the tests ran there and passed. uv printed no warning and reused
+the environment. It was a working environment that met the project's
+\texttt{requires-python}, so there was nothing obviously wrong for uv to
+catch. The test output under all three tools is just \texttt{1 passed}, and the
+job's setup step reports the Python it was asked for.
 
 \emph{With only the minor version (E1), a patch release broke the build under
 pip and Poetry.} The environment pointed at the 3.12.10 install, which the
