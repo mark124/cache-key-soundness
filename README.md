@@ -1,7 +1,7 @@
 # cache-key-soundness
 
-Artifact for the paper *Cache Keys Are Dependency Declarations: Under-Specified
-Keys for Cached Python Environments in GitHub Actions* (Mark C. Johnson).
+Artifact for the paper *Tests Passed on the Wrong Python: Incomplete Cache
+Keys in GitHub Actions* (Mark C. Johnson).
 
 A GitHub Actions workflow that caches a **built** Python environment (a
 virtualenv, `.tox`, a Poetry environment) and skips installation on a cache
