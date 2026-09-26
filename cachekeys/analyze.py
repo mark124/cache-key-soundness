@@ -163,7 +163,7 @@ def interp_signal(key: str, exported_vars: set[str], setup_inputs: list[str],
                   matrix: dict) -> tuple[str, str]:
     if FULL_VERSION_EXPR.search(key):
         return "full", FULL_VERSION_EXPR.search(key).group(0)
-    for var in exported_vars:
+    for var in sorted(exported_vars):
         if re.search(r"\b" + re.escape(var) + r"\b", key):
             return "full", f"exported:{var}"
     if FULL_VERSION_COMPUTED.search(key):
