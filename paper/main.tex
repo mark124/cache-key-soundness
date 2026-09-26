@@ -428,7 +428,7 @@ A cache key for a built environment is a list of what it depends on, and most
 of the ones we sampled leave out the Python version. When such a key matches,
 the result depends on the tool and on what changed. It can be a loud failure,
 a quiet repair, or a passing build on the wrong Python. The fix is one
-expression.
+expression, and for pip and Poetry it keeps the time the cache saves.
 
 \section*{Data Availability}
 Code, data and scripts: \repourl{} (tag \texttt{\repotag}). Every number in
