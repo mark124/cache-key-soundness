@@ -61,9 +61,9 @@ packages inside it were built for that one interpreter version. Restore it
 under a different interpreter and you're reusing a build whose inputs have
 changed. The cache key is what decides whether that happens.
 
-Build-systems research already treats this as a bug. A build is only correct if every
-input to a saved result is part of the key used to look it
-up~\cite{mokhov2018build,licker2019incorrect}. Bazel users call the same
+Build-systems research already treats this as a bug: a saved result that
+doesn't account for one of its inputs can produce a wrong
+build~\cite{mokhov2018build,licker2019incorrect}. Bazel users call the same
 property hermeticity~\cite{zheng2025hermeticity}. Research on CI caching asks
 other questions. It asks how teams adopt and maintain
 caching~\cite{hasan2026caching}, whether caching saves
@@ -401,18 +401,21 @@ Verdict & \ck{t5.verdict_labelled} & \ck{t5.verdict_agreement_pct} \\
 
 \section{Related Work}
 
-\emph{Build correctness.} \citet{mokhov2018build} describe a model where a
-build system is correct only if each saved result is looked up by all of its
-inputs. \citet{licker2019incorrect} find missing dependencies in build rules by
-changing inputs and comparing incremental builds with clean ones. Our
-experiment applies the same idea to CI caches. \citet{zheng2025hermeticity}
+\emph{Build correctness.} \citet{mokhov2018build} give a formal model of build
+systems, including when a build is correct. \citet{licker2019incorrect} find
+missing dependencies in build rules: they change files, run incremental
+builds, and compare what changed with what should have changed. Our
+experiment uses a similar idea: change one input, the Python version, and see
+what the cached environment does. \citet{zheng2025hermeticity}
 study hermeticity in Bazel builds.
 
 \emph{CI caching.} \citet{hasan2026caching} study how GitHub Actions projects
 adopt and change their caching setup. There, key changes show up as
 maintenance, and a badly designed key is described as causing repeated misses.
-\citet{urdih2026smells} list cache smells in GitLab CI. All of them are about
-speed or storage. \citet{ghaleb2026travis} measure what caching gains on
+\citet{urdih2026smells} list ten cache smells in GitLab CI. Nine are about
+speed or storage. The tenth, \emph{No Fallback Cache}, recommends adding
+fallback keys. Our E3 condition shows that a fallback key without the Python
+version can restore the wrong environment. \citet{ghaleb2026travis} measure what caching gains on
 Travis CI, and \citet{bouzenia2024resource} find caching under-used in GitHub
 Actions. \citet{khatami2024smells} list workflow smells. Their one caching
 smell is about the \texttt{cache} option of setup actions. Our question, whether
