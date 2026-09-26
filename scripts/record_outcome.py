@@ -33,6 +33,7 @@ record = {
     "tool": env["TOOL"],
     "key": env["CACHE_KEY"],
     "cache_hit": env["CACHE_HIT"] == "true",
+    "cache_matched_key": env.get("CACHE_MATCHED_KEY", ""),
     "leg_requested": env["LEG_REQUESTED"],
     "leg_actual": env["LEG_ACTUAL"],
     "seed": seed,

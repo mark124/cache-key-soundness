@@ -1,0 +1,167 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{natbib}
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,breaklines=true,frame=single}
+
+\input{numbers.tex}
+
+\title{Cache Keys Are Dependency Declarations:\\
+Under-Specified Keys for Cached Python Environments in GitHub Actions}
+\author{Mark C. Johnson\\ Rowset LLC, Conley, Georgia, USA\\ \texttt{mark@rowset.co}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% DRAFT -- facts are final once results/ is final; the sentences are Mark's to rewrite.
+A GitHub Actions workflow that caches a built Python environment (a
+virtualenv, \texttt{.tox}, a Poetry environment) and skips installation on a
+cache hit is running an incremental build. Its cache key is the only
+declaration of what that environment depends on. Build-systems research has
+long treated an incomplete dependency declaration as a correctness bug; CI
+caching research has studied cache adoption and speed. We study where the two
+meet. We state a soundness condition for cache keys of built environments,
+measure it on a stratified sample of \ck{h.repos_sampled} Python repositories,
+and test its consequences in a controlled experiment on GitHub-hosted runners.
+Of \ck{h.built_env_steps} cache steps that store a built environment,
+\ck{h.unsound_steps} (\ck{h.unsound_pct_of_built}\%) use a key that omits the
+exact interpreter, and \ck{h.unsound_with_skip} of those also skip
+installation on a hit. % RESULTS SENTENCE FOR THE EXPERIMENT GOES HERE
+We release a linter that flags these keys. Code, data and every number in this
+paper: \repourl.
+\end{abstract}
+
+\section{Introduction}
+% Facts to carry, in this order:
+% 1. actions/cache + `if: steps.x.outputs.cache-hit != 'true'` = incremental build step.
+% 2. The key is the only record of the cached directory's inputs.
+% 3. For a download cache (pip/uv/poetry package store) an incomplete key is harmless:
+%    files are content-addressed and re-checked on install.
+% 4. For a BUILT environment it is not: a venv's python is a link into one
+%    specific interpreter install; compiled extensions are built for its ABI.
+% 5. Build systems literature: missing dependency = incorrect build
+%    \citep{mokhov2018build,licker2019incorrect,zheng2025hermeticity}.
+% 6. CI caching literature measures adoption, efficiency, smells
+%    \citep{hasan2026caching,urdih2026smells,ghaleb2026travis,bouzenia2024resource,khatami2024smells};
+%    none checks whether a key covers the cached thing's inputs.
+% 7. Contributions: (C1) soundness condition; (C2) prevalence on a stratified sample;
+%    (C3) controlled experiment per tool; (C4) history evidence; (C5) linter.
+
+\section{Background}
+\paragraph{How \texttt{actions/cache} matches.}
+% - exact `key` match -> output cache-hit = 'true'
+% - otherwise `restore-keys` are tried as PREFIXES, newest first; a prefix match
+%   restores files but sets cache-hit = 'false'
+% - the cache "version" also hashes the `path` list, so a path that embeds the
+%   interpreter location (env.pythonLocation) cannot be restored for another one
+% VERIFIED 26 Sep 2026 against actions/cache README at tag v6.1.0:
+%   L94 restore-keys are prefix-matched; L105-106 and L156 cache-hit is 'true' only
+%   for an exact key match, 'false' for a restore-keys match; L293-295 the cache
+%   version hashes compression tool + `path`, so Windows vs Linux never cross.
+%   L272: the README itself RECOMMENDS skipping install/build on a cache hit.
+% Cite: https://github.com/actions/cache/blob/v6.1.0/README.md
+
+\paragraph{What a virtual environment depends on.}
+% - pyvenv.cfg `home =` records the base interpreter directory
+% - bin/python is a symlink to that interpreter (POSIX default)
+% - on hosted runners setup-python installs to /opt/hostedtoolcache/Python/<X.Y.Z>/x64,
+%   and each runner image carries one patch per minor version; images are updated weekly
+% => a venv built on 3.12.a points at a directory that does not exist on an image with 3.12.b
+
+\section{A Soundness Condition for Cache Keys}
+% Definition: a cache step is SOUND for a cached path P if the key (together with the
+% path list, which actions/cache folds into the cache version) determines every input
+% that P's contents depend on.
+% For built Python environments, the inputs are: exact interpreter (version and
+% location), the dependency specification (lock file), OS and architecture.
+% Operationalisation used by the classifier (Table~2 verdicts):
+%   sound / minor_only / no_interpreter / version_file / not_applicable
+% Two refinements: a matrix or setup-python input pinned to full patch versions is
+% exact; a key computed in an earlier run step is judged by the text of that step.
+% Separate hazard: a sound key with a restore-keys prefix that drops the interpreter.
+
+\section{Method}
+\subsection{RQ1: How common are under-specified keys for built environments?}
+% Sample (scripts/fetch_sample.py): GitHub repository search, language:Python,
+% not fork, not archived, pushed in the 12 months before 2026-09-26; four star strata
+% (10-99, 100-999, 1,000-9,999, 10,000+); frame = union of one query per stratum x
+% creation year, first 300 results each; seeded random sample of up to 1,000 per stratum.
+% Retrieved every .github/workflows/*.y(a)ml at default-branch HEAD (GraphQL); SHAs in
+% data/raw/manifest.jsonl.
+% Classifier: cachekeys/analyze.py; validated against hand labels (Table~5).
+
+\subsection{RQ2: What happens when such a key matches?}
+% Controlled experiment, .github/workflows/harm.yml, GitHub-hosted ubuntu-24.04.
+% Fixture: one test that records the interpreter it ran on; deps pytest + PyYAML (C ext).
+% Tools: pip+venv, Poetry (in-project venv), uv. Conditions:
+%   C0 sound key (control), E1 minor-only key across a patch release,
+%   E2 no version in key (3.11 env restored on a 3.13 leg),
+%   E3 sound key + version-less restore-keys prefix.
+% Outcome classes: correct_miss, self_healed, loud_failure, silent_wrong.
+% Every outcome links to its public run log (results/table3_harm.csv).
+
+\subsection{RQ3: Do maintainers hit this?}
+% scripts/mine_key_fixes.py: history of every workflow file in the sample that caches a
+% built env (up to 40 commits each); classify key changes as adds_interpreter /
+% manual_bust / other.
+
+\section{Results}
+\subsection{RQ1}
+\begin{table}[t]\centering\small
+\caption{Sample and prevalence by star stratum. Produced by \texttt{make table1}
+from \texttt{results/table1\_sample.csv}.}
+\IfFileExists{table1.tex}{\input{table1.tex}}{\textit{(pending)}}
+\end{table}
+\begin{table}[t]\centering\small
+\caption{Key verdicts for cache steps that store a built Python environment.
+Produced by \texttt{make table2} from \texttt{results/table2\_key\_composition.csv}.}
+\IfFileExists{table2.tex}{\input{table2.tex}}{\textit{(pending)}}
+\end{table}
+% RESULTS TEXT: to be written from results/ once final.
+
+\subsection{RQ2}
+\begin{table}[t]\centering\small
+\caption{Outcome of restoring a cached environment under each condition.
+Produced by \texttt{make table3} from \texttt{results/table3\_matrix.csv};
+each row links to per-run records with public log URLs.}
+\IfFileExists{table3.tex}{\input{table3.tex}}{\textit{(pending)}}
+\end{table}
+
+\subsection{RQ3}
+
+\section{Implications}
+% - linter rule (cachekeys lint); candidate for actionlint / zizmor
+% - one-line fix: steps.<setup-python id>.outputs.python-version in the key
+% - cache the download store, not the built environment, unless the key covers the interpreter
+
+\section{Threats to Validity}
+% construct: regex classifier (validated, Table 5); keys set via reusable workflows or
+%   composite actions are not followed
+% internal: experiment is one fixture, one OS, one date; tool versions pinned
+% external: search-based frame is not a uniform sample of GitHub; Python only
+
+\section{Related Work}
+% build correctness: \citet{mokhov2018build,licker2019incorrect,zheng2025hermeticity}
+% CI caching: \citet{hasan2026caching} (adoption/evolution, 952 repos; key changes appear
+%   only as maintenance drivers, and a bad key is framed as causing misses),
+%   \citet{urdih2026smells} (GitLab cache smells, efficiency/retention),
+%   \citet{ghaleb2026travis}, \citet{bouzenia2024resource}
+% workflow smells: \citet{khatami2024smells} (its one caching smell is
+%   "use cache parameter instead of cache option")
+
+\section{Data Availability}
+Code, data, and scripts: \repourl{} (tag \texttt{\repotag}).
+% Zenodo DOI to be added after the tag is archived.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+\end{document}

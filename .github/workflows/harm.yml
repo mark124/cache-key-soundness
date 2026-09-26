@@ -5,6 +5,9 @@
 #   C0  sound key       key carries the full interpreter version (control)
 #   E1  minor-only key  seeded on an older 3.12 patch, restored on current 3.12
 #   E2  no version      seeded on 3.11, restored on a 3.13 leg
+#   E3  sound key, but a version-less restore-keys prefix: the exact key
+#       misses, the prefix restores the 3.11 environment, and installation
+#       runs on top of it
 #
 # Each run uses keys scoped to its own run id, so runs never share caches.
 name: harm
@@ -22,12 +25,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition: [C0, E1, E2]
+        condition: [C0, E1, E2, E3]
         tool: [pip, poetry, uv]
         include:
           - {condition: C0, seed_py: "3.12.10", keyver: full}
           - {condition: E1, seed_py: "3.12.10", keyver: "3.12"}
           - {condition: E2, seed_py: "3.11", keyver: none}
+          - {condition: E3, seed_py: "3.11", keyver: full}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
@@ -56,12 +60,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition: [C0, E1, E2]
+        condition: [C0, E1, E2, E3]
         tool: [pip, poetry, uv]
         include:
           - {condition: C0, leg_py: "3.12", keyver: full}
           - {condition: E1, leg_py: "3.12", keyver: "3.12"}
           - {condition: E2, leg_py: "3.13", keyver: none}
+          - {condition: E3, leg_py: "3.13", keyver: full}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
@@ -80,6 +85,7 @@ jobs:
         with:
           path: fixture/.venv
           key: ${{ steps.key.outputs.key }}
+          restore-keys: ${{ matrix.condition == 'E3' && format('exp-{0}-{1}-E3-{2}-', github.run_id, github.run_attempt, matrix.tool) || '' }}
       # The pattern under study: skip installation whenever the key matched.
       - if: steps.cache.outputs.cache-hit != 'true'
         run: bash scripts/build_env.sh "${{ matrix.tool }}" "${{ steps.py.outputs.python-path }}"
@@ -89,6 +95,7 @@ jobs:
           TOOL: ${{ matrix.tool }}
           CACHE_KEY: ${{ steps.key.outputs.key }}
           CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          CACHE_MATCHED_KEY: ${{ steps.cache.outputs.cache-matched-key }}
           LEG_REQUESTED: ${{ matrix.leg_py }}
           LEG_ACTUAL: ${{ steps.py.outputs.python-version }}
           PROBE_OUT: ${{ github.workspace }}/probe.json
