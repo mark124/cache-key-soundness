@@ -189,3 +189,24 @@ def test_key_computed_in_run_step_is_followed():
           key: ${{ steps.k.outputs.key }}
 """)
     assert c.interp_signal == "full"
+
+
+def test_matrix_env_name_with_python_token():
+    head = HEAD.replace('python-version: ["3.11", "3.12"]', 'env_name: ["py311", "py312-lint"]')
+    c = one("""
+      - uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ matrix.env_name }}-${{ hashFiles('poetry.lock') }}
+""", head)
+    assert c.interp_signal == "minor"
+
+
+def test_macos_pip_cache_is_download_store():
+    c = one("""
+      - uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: pip-${{ hashFiles('r.txt') }}
+""")
+    assert c.path_kind == "download_store"

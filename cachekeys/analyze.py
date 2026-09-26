@@ -41,7 +41,7 @@ NOT_PY_ENV = re.compile(r"\.local/(share/)?(mise|asdf|rtx|nvim|pnpm|fnm|go|cargo
 # Package-manager download stores: content-addressed, safe without the
 # interpreter in the key.
 DOWNLOAD_STORE = re.compile(
-    r"""(\.cache/pip | pip-cache | /pip/cache | \\pip\\cache
+    r"""(\.cache/pip | pip-cache | /pip/cache | \\pip\\cache | Caches/pip | pip\\Cache
       | \.cache/pypoetry/(cache|artifacts)
       | \.cache/uv | uv-cache | UV_CACHE_DIR
       | pip\ cache\ dir | steps\.[\w-]+\.outputs\.(pip-)?(cache-)?dir )""",
@@ -176,7 +176,8 @@ def interp_signal(key: str, exported_vars: set[str], setup_inputs: list[str],
         name = m.group(1)
         vals = _matrix_values(matrix, name)
         looks_py = bool(MATRIX_VERSION.fullmatch(m.group(0))) or (
-            vals and all(re.fullmatch(r"(pypy-?)?3(\.\d+){1,2}", v) for v in vals))
+            vals and all(re.fullmatch(r"(pypy-?)?3(\.\d+){1,2}", v) or MINOR_VERSION_LITERAL.search(v)
+                         for v in vals))
         if not looks_py:
             continue
         # a matrix whose values are all exact patch versions is as good as full
