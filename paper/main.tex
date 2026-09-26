@@ -147,9 +147,9 @@ are judged by that step's script. Unit tests for each rule are in
 Table~\ref{tab:val}.
 
 The same classifier is the linter:
-\begin{lstlisting}
-$ python -m cachekeys lint .github/workflows
-\end{lstlisting}
+\begin{center}
+\texttt{python -m cachekeys lint .github/workflows}
+\end{center}
 It reports a built-environment cache without the exact interpreter as an
 error when installation is skipped on a hit, and as a warning otherwise. The
 fix is one expression in the key:
