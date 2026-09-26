@@ -61,7 +61,7 @@ packages inside it were built for that one interpreter version. Restore it
 under a different interpreter and you're reusing a build whose inputs have
 changed. The cache key is what decides whether that happens.
 
-Build-systems research has a name for this. A build is only correct if every
+Build-systems research already treats this as a bug. A build is only correct if every
 input to a saved result is part of the key used to look it
 up~\cite{mokhov2018build,licker2019incorrect}. Bazel users call the same
 property hermeticity~\cite{zheng2025hermeticity}. Research on CI caching asks
