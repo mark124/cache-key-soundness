@@ -38,7 +38,7 @@ def fmt(v):
 
 
 def link(tag, rel, line, text):
-    anchor = f"\#L{line}" if line else ""   # \# : a bare # breaks \def
+    anchor = rf"\#L{line}" if line else ""   # \# : a bare # breaks \def
     return r"\href{%s/blob/%s/%s%s}{%s}" % (REPO_URL, tag, rel, anchor, text)
 
 
