@@ -138,6 +138,7 @@ def main():
         "repos_any_unsound": sum(1 for r in repo_rows if r["any_unsound"]),
         "repos_exposed": sum(1 for r in repo_rows if r["exposed"]),
         "repos_exposed_pct_of_built_env_repos": pct(sum(1 for r in repo_rows if r["exposed"]), len(repo_rows)),
+        "built_with_deps_hash": sum(1 for s in built if s["deps_hashed"]),
         "minor_only_steps": sum(1 for s in built if s["verdict"] == "minor_only"),
         "no_interpreter_steps": sum(1 for s in built if s["verdict"] == "no_interpreter"),
         "sound_steps": sum(1 for s in built if s["verdict"] == "sound"),

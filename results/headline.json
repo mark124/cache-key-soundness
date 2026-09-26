@@ -13,6 +13,7 @@
   "repos_any_unsound": 59,
   "repos_exposed": 13,
   "repos_exposed_pct_of_built_env_repos": 14.9,
+  "built_with_deps_hash": 227,
   "minor_only_steps": 67,
   "no_interpreter_steps": 81,
   "sound_steps": 88,

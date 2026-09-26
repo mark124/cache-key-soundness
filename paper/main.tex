@@ -119,7 +119,8 @@ leaves a working link to the wrong Python.
 We call a cache step \emph{sound} when its key determines everything the cached
 folder depends on. The folder list counts too, because \texttt{actions/cache}
 folds it into the hidden version. For a built Python environment the inputs
-are the exact Python version, the dependency list, and the platform. Most keys
+are the exact Python version, the dependency list, and the platform.
+\ck{h.built_with_deps_hash} of the \ck{h.built_env_steps} keys we studied
 already include the dependency list, as a hash of a lock file. The hidden
 version partly covers the platform. So we focus on the Python version.
 
