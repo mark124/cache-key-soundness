@@ -22,6 +22,8 @@
   "unsound_with_skip_or_restore_keys": 89,
   "sound_with_skip": 55,
   "pct_workflow_repos_caching_built_env": 2.9,
+  "pct_caching_built_env_min_stratum": 2.0,
+  "pct_caching_built_env_max_stratum": 3.6,
   "frame_size": 14973,
   "frame_s4": 825,
   "repos_any_unsound_pct_of_built_env_repos": 67.8,

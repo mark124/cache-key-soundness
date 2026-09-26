@@ -147,6 +147,8 @@ def main():
         "unsound_with_skip_or_restore_keys": sum(1 for s in unsound if s["skip_on_hit"] or s["restore_keys"]),
         "sound_with_skip": sum(1 for s in built if s["verdict"] == "sound" and s["skip_on_hit"]),
         "pct_workflow_repos_caching_built_env": t1[-1]["pct_of_workflow_repos_caching_built_env"],
+        "pct_caching_built_env_min_stratum": min(r["pct_of_workflow_repos_caching_built_env"] for r in t1[:-1]),
+        "pct_caching_built_env_max_stratum": max(r["pct_of_workflow_repos_caching_built_env"] for r in t1[:-1]),
         "frame_size": sum(1 for _ in open(os.path.join(RAW, "frame.jsonl"))),
         "frame_s4": sum(1 for l in open(os.path.join(RAW, "frame.jsonl")) if json.loads(l)["stratum"] == "s4"),
         "repos_any_unsound_pct_of_built_env_repos": pct(sum(1 for r in repo_rows if r["any_unsound"]), len(repo_rows)),

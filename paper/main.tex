@@ -235,7 +235,9 @@ Few repositories cache a built environment (Table~\ref{tab:sample}). Of the
 \ck{h.repos_with_workflows} sampled repositories with workflows,
 \ck{h.repos_with_actions_cache} use \texttt{actions/cache}, and
 \ck{h.repos_caching_built_env} (\ck{h.pct_workflow_repos_caching_built_env}\%)
-cache a built Python environment. The share barely changes with star count.
+cache a built Python environment. The share ranges from
+\ck{h.pct_caching_built_env_min_stratum}\% to
+\ck{h.pct_caching_built_env_max_stratum}\% across the star groups.
 
 When they do, the key usually leaves out the Python version
 (Table~\ref{tab:keys}). Of \ck{h.built_env_steps} such steps,
@@ -249,9 +251,9 @@ incomplete key.
 
 Skipping the install step on a hit is \emph{more} common with sound keys
 (\ck{h.sound_with_skip} of \ck{h.sound_steps}) than with incomplete ones
-(\ck{h.unsound_with_skip} of \ck{h.unsound_steps}). Most incomplete keys come
-with restore keys instead (\ck{h.unsound_with_restore_keys} of
-\ck{h.unsound_steps}). Those restore an environment even when the exact key
+(\ck{h.unsound_with_skip} of \ck{h.unsound_steps}). About half of the
+incomplete keys come with restore keys instead
+(\ck{h.unsound_with_restore_keys} of \ck{h.unsound_steps}). Those restore an environment even when the exact key
 misses. RQ2 shows that doesn't make them safe.
 
 \subsection{RQ2: What goes wrong}
