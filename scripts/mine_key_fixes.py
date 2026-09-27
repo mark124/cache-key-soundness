@@ -151,6 +151,9 @@ def table():
                "repos_with_version_literal": len({r["repo"] for r in rows if r["kind"] == "version_literal"}),
                "repos_with_any_key_change": len({r["repo"] for r in rows}),
                "commits_with_any_key_change": len({(r["repo"], r["sha"]) for r in rows}),
+               "commits_in_two_categories": sum(
+                   1 for c in {(r["repo"], r["sha"]) for r in rows}
+                   if len({r["kind"] for r in rows if (r["repo"], r["sha"]) == c}) > 1),
                "repos_with_increment_comment": len({r["repo"] for r in rows if r["kind"] == "manual_bust"
                                                     and "increment to reset cache" in r["new_key"]}),
                **{f"commits_{k}": len({(r["repo"], r["sha"]) for r in rows if r["kind"] == k})

@@ -52,6 +52,7 @@ def fetch(run_ids):
 
 
 LABEL = {"correct_miss": "correct (miss)", "correct_hit": "correct (hit)", "self_healed": "self-healed",
+         "rebuilt_after_prefix": "correct (stale restore, rebuilt)",
          "loud_failure": "loud failure", "silent_wrong": "silent wrong"}
 
 
@@ -62,7 +63,9 @@ def classify(o: dict) -> str:
     if ran and ran != o["leg_actual"]:
         return "silent_wrong"
     if not o["cache_hit"]:
-        return "correct_miss"
+        # the exact key missed; if a restore-keys prefix still restored an
+        # environment, the install step rebuilt over it
+        return "rebuilt_after_prefix" if o.get("cache_matched_key") else "correct_miss"
     # a hit that ran on the Python the environment was built with is a plain,
     # correct cache hit; a hit that ran on a different (requested) Python means
     # the tool noticed and rebuilt the environment itself
@@ -104,7 +107,8 @@ def table():
             w.writerow([c] + ["/".join(sorted(LABEL[o] for o in cell[(c, t)])) or "-" for t in ("pip", "poetry", "uv")])
     oc = Counter(r["outcome"] for r in rows)
     summary = {"runs": len({r["run_id"] for r in rows}), "outcomes": len(rows),
-               **{f"n_{k}": oc.get(k, 0) for k in ("correct_miss", "correct_hit", "self_healed", "loud_failure", "silent_wrong")},
+               **{f"n_{k}": oc.get(k, 0) for k in ("correct_miss", "correct_hit", "rebuilt_after_prefix", "self_healed", "loud_failure",
+                                          "silent_wrong")},
                "pairs_inconsistent_across_runs": sum(1 for v in cell.values() if len(v) > 1)}
     for r in rows:
         summary.setdefault(f'{r["condition"]}_{r["tool"]}_outcome', r["outcome"])

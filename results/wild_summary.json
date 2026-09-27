@@ -1,0 +1,10 @@
+{
+  "shared_cases_checked": 4,
+  "live_shared_caches": 1,
+  "inert_shared_caches": 2,
+  "undetermined_shared_caches": 1,
+  "wild_jobs_in_live_run": 5,
+  "wild_jobs_wrong_python": 4,
+  "wild_jobs_wrong_python_passed": 4,
+  "wild_tests_ran_on": "3.12.14"
+}

@@ -1,0 +1,53 @@
+{
+  "repo": "nextcord/nextcord",
+  "workflow": "lint.yml",
+  "run_id": "35673493319",
+  "run_url": "https://github.com/nextcord/nextcord/actions/runs/35673493319",
+  "created_at": "2026-09-22T00:49:11Z",
+  "head_sha": "b927878e39cdbfe3bacc40db0b117765048555f6",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "pyright (3.12)",
+      "conclusion": "success",
+      "lines": [
+        {
+          "kind": "cache_not_found",
+          "text": "Cache not found for input keys: poetry-0"
+        },
+        {
+          "kind": "setup",
+          "text": "Successfully set up CPython (3.12.14)"
+        },
+        {
+          "kind": "path_missing",
+          "text": "[warning]Path Validation Error: Path(s) specified in the action for caching do(es) not exist, hence no cache is being saved."
+        }
+      ],
+      "cache_not_found": "poetry-0",
+      "setup": "3.12.14",
+      "path_missing": true
+    },
+    {
+      "name": "pyright (3.13)",
+      "conclusion": "success",
+      "lines": [
+        {
+          "kind": "cache_not_found",
+          "text": "Cache not found for input keys: poetry-0"
+        },
+        {
+          "kind": "setup",
+          "text": "Successfully set up CPython (3.13.15)"
+        },
+        {
+          "kind": "path_missing",
+          "text": "[warning]Path Validation Error: Path(s) specified in the action for caching do(es) not exist, hence no cache is being saved."
+        }
+      ],
+      "cache_not_found": "poetry-0",
+      "setup": "3.13.15",
+      "path_missing": true
+    }
+  ]
+}

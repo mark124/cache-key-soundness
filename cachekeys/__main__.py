@@ -46,7 +46,7 @@ def lint(paths: list[str]) -> int:
 def reproduce() -> int:
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for script in ["scripts/analyze_sample.py", "scripts/collect_harm.py table", "scripts/collect_bench.py table",
-                   "scripts/adjudicate_round2.py", "scripts/validate_classifier.py", "scripts/mine_key_fixes.py table"]:
+                   "scripts/adjudicate_round2.py", "scripts/validate_classifier.py", "scripts/mine_key_fixes.py table", "scripts/check_wild.py table"]:
         parts = script.split()
         path = os.path.join(here, parts[0])
         if not os.path.exists(path):

@@ -1,0 +1,10 @@
+{
+  "mem0ai/mem0": {
+    "status": "inert",
+    "reason": "At the sampled commit 94c3fe9f238f3dbf29c9ce98643bd71eb13077cd, .github/workflows/ci.yml job build_mem0 caches .venv, but the install step runs `pip install -e \".[test,graph,vector_stores,llms,extras]\"` into setup-python's interpreter, and `make test` runs `hatch run test`; pyproject.toml gives Hatch's default environment no path = \".venv\". Nothing creates .venv, so the cache never hits."
+  },
+  "tmbo/questionary": {
+    "status": "undetermined",
+    "reason": "The most recent successful run checked (32128983553, 2026-08-18) shows no actions/cache restore or save lines for the test jobs; the workflow appears to have changed from the sampled commit, so its logs cannot settle whether the sampled cache is live."
+  }
+}

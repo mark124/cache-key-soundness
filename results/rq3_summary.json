@@ -11,6 +11,7 @@
   "repos_with_version_literal": 2,
   "repos_with_any_key_change": 45,
   "commits_with_any_key_change": 104,
+  "commits_in_two_categories": 2,
   "repos_with_increment_comment": 2,
   "commits_adds_interpreter": 18,
   "commits_manual_bust": 10,

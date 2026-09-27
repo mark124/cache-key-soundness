@@ -40,7 +40,9 @@ produced harm. In that controlled experiment on GitHub's runners, a key with
 no Python version made a job set up for Python~3.13 run its tests on 3.11 and
 pass, under pip, Poetry and uv. With only the minor version in the key, a
 patch release broke the build under pip and Poetry, while uv rebuilt the
-environment. We release a linter that flags incomplete keys. The fix is one
+environment. The silent failure also occurs in practice: in one public
+project's CI, \ck{w.wild_jobs_wrong_python} of \ck{w.wild_jobs_in_live_run} matrix jobs ran their tests
+on the wrong Python and passed. We release a linter that flags incomplete keys. The fix is one
 expression, and for pip and Poetry it keeps the time the cache saves. Code,
 data and every number in this paper: \repourl.
 \end{abstract}
@@ -72,9 +74,14 @@ storage or cause misses~\cite{urdih2026smells,khatami2024smells}. Closest to
 our question, \citet{gallaba2022kotinos} avoid hand-written dependency
 declarations altogether: their CI service infers dependencies and caches whole
 build environments, because hand-maintained dependency graphs can be
-under-specified and give incorrect builds. We found no study that measures how
-often the cache keys people write by hand in GitHub Actions workflows cover
-what the cached folder depends on.
+under-specified and give incorrect builds. Practitioners know part of the
+problem: a GitHub Action exists to change cache keys when a new Python patch
+release leaves cached environments with ``broken symlinks or missing
+libraries''~\cite{mckee2024detectpythons}, and a guide to caching virtual
+environments puts the full Python version in the key~\cite{johnson2023venvcache}.
+We found no study that measures how often the cache keys people write by hand
+in GitHub Actions workflows cover what the cached folder depends on, or what
+happens when they do not.
 
 This paper makes three contributions.
 \begin{enumerate}
@@ -291,11 +298,28 @@ also needs the same key to be used by jobs on different Python versions. We
 can see one way that happens in a single snapshot: one key shared across a
 matrix of Python versions, with no other matrix variable in the key to tell
 them apart. That occurs in only \ck{h.shared_across_python_steps} steps, in
-\ck{h.shared_across_python_repos} repositories, and
-\ck{h.shared_across_python_with_skip} of them also skips the install step,
-which is the E2 setup exactly. The other way, a project moving to a new Python
-version without changing its lock file, cannot be seen in one snapshot, so this
-count is a lower bound. Minor-only keys that skip the install step
+\ck{h.shared_across_python_repos} repositories.
+
+We checked each of the four against its public CI logs
+(\texttt{scripts/check\_wild.py}; the evidence is committed under
+\texttt{data/wild/} because GitHub deletes run logs). \ck{w.inert_shared_caches}
+are inert: in one the cached folder never exists, and in the other the cached
+\texttt{.venv} is never created, because dependencies go into setup-python's
+interpreter and the tests run in Hatch's own environment. For
+\ck{w.undetermined_shared_caches} the workflow has changed since our snapshot,
+so its logs cannot settle it. The remaining one is live. In
+\href{https://github.com/jacebrowning/gitman/actions/runs/35938984458}{a
+successful run of gitman's CI} on 24 September 2026, one \texttt{.venv} cache
+was restored into all \ck{w.wild_jobs_in_live_run} matrix jobs. The jobs set
+up Python 3.10, 3.11, 3.13 and 3.14, but in each of those
+\ck{w.wild_jobs_wrong_python} jobs the tests ran on
+\ck{w.wild_tests_ran_on}, and all of them passed. The install step ran, and
+Poetry reported ``No dependencies to install or update''. This is the E2
+failure in a real project, with the install step not even skipped.
+
+The other way a key ends up shared across Python versions, a project moving to a new Python
+version without changing its lock file, cannot be seen in one snapshot, so the
+count of four is a lower bound. Minor-only keys that skip the install step
 (\ck{h.minor_only_with_skip}) are set up for the E1 failure at the next patch
 release.
 
@@ -316,7 +340,10 @@ their keys also optimise their installs.
 
 \begin{table}[t]\centering\small
 \caption{What happened when a cached environment was restored, by condition
-and tool. All \ck{t3.runs} runs gave the same result. Produced by
+and tool. All \ck{t3.runs} runs gave the same result. \emph{correct (hit)} and
+\emph{correct (miss)} refer to the exact key; \emph{stale restore, rebuilt}
+means a restore key brought back the 3.11 environment and the install step
+replaced it. Produced by
 \texttt{make table3} from \texttt{results/table3\_matrix.csv}; the per-run
 records, with links to the public logs, are in
 \texttt{results/table3\_harm.csv}.}
@@ -353,7 +380,10 @@ though the install step ran.} Running \texttt{python -m venv .venv} over an
 existing environment did not replace its interpreter link, and
 \texttt{pip install} reported every requirement as already satisfied (the
 install output is in each E3 outcome file). Poetry and uv
-rebuilt the environment during the install step. So skipping the install step
+rebuilt the environment during the install step. For Poetry that depends on
+how it is called: our install step runs \texttt{poetry env use} with the job's
+interpreter first. gitman's plain \texttt{poetry install} kept the restored
+environment (\S\ref{sec:rq1}). So skipping the install step
 is not the only way an incomplete key does harm. With pip, restoring the
 environment at all is enough.
 
@@ -365,7 +395,9 @@ evidence is in the commit messages. We went through
 \ck{rq3.workflow_files_scanned} workflow files and found
 \ck{rq3.key_changes} separate changes to a cache key, in
 \ck{rq3.commits_with_any_key_change} commits across
-\ck{rq3.repos_with_any_key_change} repositories. A change that merge commits
+\ck{rq3.repos_with_any_key_change} repositories
+(\ck{rq3.commits_in_two_categories} commits fall into two of the categories
+below). A change that merge commits
 repeat is counted once. \ck{rq3.commits_adds_interpreter} commits in
 \ck{rq3.repos_with_adds_interpreter} repositories added a Python version to a
 key or made it more exact. Several say so in the commit message:
@@ -440,7 +472,9 @@ environment was valid, just for a different Python.
 
 \emph{The classifier.} It reads workflow text with patterns. It does not follow
 keys set inside reusable workflows or composite actions, and it can misread
-unusual folder names. We checked it against hand labels in two rounds of 100
+unusual folder names. It sees only the workflow text, so it cannot tell whether
+a cached folder is ever populated or used by the tests. Some counted caches
+may be inert, as two of the four we checked by hand were. We checked it against hand labels in two rounds of 100
 cache steps each, drawn at random with fixed seeds and with no step in both.
 In round 1 the labeller worked from a shortened version of the rules that left
 out several kinds of built environment. Agreement was

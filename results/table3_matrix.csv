@@ -3,4 +3,4 @@ C0,correct (miss),correct (miss),correct (miss)
 C1,correct (hit),correct (hit),correct (hit)
 E1,loud failure,loud failure,self-healed
 E2,silent wrong,silent wrong,silent wrong
-E3,silent wrong,correct (miss),correct (miss)
+E3,silent wrong,"correct (stale restore, rebuilt)","correct (stale restore, rebuilt)"
