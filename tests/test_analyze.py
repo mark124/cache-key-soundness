@@ -210,3 +210,27 @@ def test_macos_pip_cache_is_download_store():
           key: pip-${{ hashFiles('r.txt') }}
 """)
     assert c.path_kind == "download_store"
+
+
+def test_other_folders_under_local_are_not_python():
+    for path, kind in [("~/.local/labwc", "other"), ("~/.local/share/mise", "other"),
+                       ("~/.local", "built_env"), ("~/.local/lib/python3.12", "built_env"),
+                       ("~/.local/share/pypoetry", "built_env")]:
+        c = one(f"""
+      - uses: actions/cache@v4
+        with:
+          path: {path}
+          key: k-${{{{ hashFiles('a') }}}}
+""")
+        assert c.path_kind == kind, path
+
+
+def test_python_tool_folders_under_local_and_prefixed_venvs():
+    for path in ["~/.local/pypoetry", "~/.local/pipx", ".local/ha-venv", "ha-venv"]:
+        c = one(f"""
+      - uses: actions/cache@v4
+        with:
+          path: {path}
+          key: k-${{{{ hashFiles('a') }}}}
+""")
+        assert c.path_kind == "built_env", path

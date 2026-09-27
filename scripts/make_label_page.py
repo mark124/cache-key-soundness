@@ -62,8 +62,10 @@ textarea { width:100%; font:inherit; padding:8px; border-radius:8px; border:1px 
 details { margin-top:16px } summary { cursor:pointer }
 a { color:var(--accent) }
 kbd { font:12px ui-monospace, monospace; border:1px solid var(--line); border-radius:4px; padding:0 4px }
+.help { margin:8px 0 0; padding-left:20px; font-size:14px; color:var(--muted) } .help li { margin:3px 0 }
+.help code, .help b { color:var(--fg) } code { font:13px ui-monospace, Consolas, monospace }
 </style></head><body><main>
-<h1>Label cache steps</h1>
+<h1>Label cache steps (round 2)</h1>
 <div class="muted">Read the path and key, then pick one answer in each group. Keys: <kbd>1</kbd>-<kbd>3</kbd> path kind, <kbd>q</kbd> <kbd>w</kbd> <kbd>e</kbd> <kbd>r</kbd> <kbd>t</kbd> verdict, <kbd>&rarr;</kbd> next, <kbd>&larr;</kbd> back. Progress saves in this browser.</div>
 <div class="bar"><div id="bar"></div></div>
 <div class="nav"><span id="pos"></span><span class="muted" id="count"></span></div>
@@ -74,8 +76,21 @@ kbd { font:12px ui-monospace, monospace; border:1px solid var(--line); border-ra
   <div class="field"><div class="label">Restore keys</div><pre id="rkeys"></pre></div>
 </div>
 <div class="card">
-  <div class="field"><div class="label">1. What does the path hold?</div><div class="choices" id="pk"></div></div>
-  <div class="field"><div class="label">2. Does the key pin the Python version? (only for built_env)</div><div class="choices" id="vd"></div></div>
+  <div class="field"><div class="label">1. What does the path hold?</div><div class="choices" id="pk"></div>
+    <ul class="help">
+      <li><b>built_env</b>: an installed Python environment. Any folder with <code>venv</code> in its name (<code>.venv</code>, <code>venv</code>, <code>ha-venv</code>), <code>.tox</code>, <code>.nox</code>, <code>site-packages</code>, <code>virtualenvs</code>, <code>pythonLocation</code>, <code>~/.local</code> itself or <code>~/.local/lib</code>, <code>~/.local/bin</code>, <code>pypoetry</code> (the whole folder, or <code>pypoetry/virtualenvs</code>), <code>pipx</code>.</li>
+      <li><b>download_store</b>: only a package manager's download cache: <code>~/.cache/pip</code>, <code>pip cache dir</code>, <code>~/.cache/uv</code> or any uv cache folder, <code>pypoetry/cache</code>, <code>pypoetry/artifacts</code>.</li>
+      <li><b>other</b>: everything else: <code>node_modules</code>, build output, <code>pre-commit</code>, Hugging Face / spaCy / Playwright downloads, <code>.mypy_cache</code>, the whole <code>~/.cache</code>.</li>
+      <li><b>Several folders listed?</b> If <b>any one</b> of them is built_env, pick built_env.</li>
+    </ul></div>
+  <div class="field"><div class="label">2. Does the key pin the Python version? (only for built_env)</div><div class="choices" id="vd"></div>
+    <ul class="help">
+      <li><b>sound</b>: the exact version, e.g. <code>steps.X.outputs.python-version</code>, <code>pythonLocation</code>, a full version like <code>3.12.4</code>, or a <code>matrix.</code> value whose list holds full versions like <code>3.12.4</code> (click the repo link to check the matrix). Also sound: the <b>path</b> contains <code>pythonLocation</code>.</li>
+      <li><b>minor_only</b>: only the minor version: <code>3.12</code>, <code>py312</code>, <code>3.9</code>, or <code>matrix.python-version</code> whose list holds values like <code>3.12</code>.</li>
+      <li><b>no_interpreter</b>: no Python version anywhere in the key.</li>
+      <li><b>version_file</b>: the key hashes <code>.python-version</code>, <code>.tool-versions</code> or <code>runtime.txt</code>, and nothing stronger.</li>
+      <li>Key says <code>steps.X.outputs...</code> or <code>env.X</code> and you can't tell what it holds? Click the repo link and find where it is set.</li>
+    </ul></div>
   <div class="field"><div class="label">Note (optional)</div><textarea id="note" rows="2"></textarea></div>
 </div>
 <div class="nav">
@@ -89,7 +104,7 @@ kbd { font:12px ui-monospace, monospace; border:1px solid var(--line); border-ra
 const ROWS = __ROWS__;
 const PK = [["built_env","1"],["download_store","2"],["other","3"]];
 const VD = [["sound","q"],["minor_only","w"],["no_interpreter","e"],["version_file","r"],["not_applicable","t"]];
-const KEY = "cks-labels-v1";
+const KEY = "cks-labels-round2";
 let store = {};
 try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
 let i = 0;

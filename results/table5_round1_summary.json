@@ -1,0 +1,11 @@
+{
+  "path_kind_labelled": 100,
+  "path_kind_agree": 67,
+  "path_kind_agreement_pct": 67.0,
+  "verdict_labelled": 100,
+  "verdict_agree": 72,
+  "verdict_agreement_pct": 72.0,
+  "verdict_both_built_env_n": 36,
+  "verdict_both_built_env_agree": 31,
+  "verdict_both_built_env_pct": 86.1
+}

@@ -9,9 +9,14 @@ refers to a value set elsewhere (the sha is in `results/cache_steps.csv`).
 
 | value | when |
 |---|---|
-| `built_env` | at least one path is a Python environment that an installer *built*: a virtualenv (`.venv`, `venv*`, poetry's `virtualenvs`, the whole `~/.cache/pypoetry`), `.tox`, `.nox`, `site-packages`, `~/.local` (pip `--user`), or the interpreter's own install directory (`pythonLocation`) |
-| `download_store` | every path is a package-manager download cache (`~/.cache/pip`, `pip cache dir`, `~/.cache/uv`, poetry `cache`/`artifacts`) |
-| `other` | anything else (`node_modules`, build outputs, pre-commit, mypy cache, tool installs) |
+| `built_env` | at least one path is a Python environment that an installer *built*: any folder with `venv` in its name (`.venv`, `venv`, `ha-venv`), poetry's `virtualenvs`, the whole `pypoetry` folder, `pipx`, `.tox`, `.nox`, `site-packages`, `~/.local` itself or its `lib`/`bin` (pip `--user`), or the interpreter's own install directory (`pythonLocation`) |
+| `download_store` | every path is a package-manager download cache (`~/.cache/pip`, `pip cache dir`, `~/.cache/uv` or any uv cache folder, poetry `cache`/`artifacts`) |
+| `other` | anything else (`node_modules`, build outputs, pre-commit, Hugging Face / spaCy / Playwright downloads, mypy cache, the whole `~/.cache`, other folders under `~/.local`) |
+
+Round 1 (`labels_round1.csv`) was labelled from a shortened version of this
+table given in chat, which left out `pythonLocation`, `site-packages`,
+`~/.local`, the whole `pypoetry` folder and the "any one path" rule. Round 2
+(`labels.csv`) was labelled with this full table shown on every card.
 
 ## label_verdict (only when `built_env`; otherwise write `not_applicable`)
 

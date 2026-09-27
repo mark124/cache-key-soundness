@@ -26,7 +26,7 @@ EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.S)
 # Directories that hold a *built* Python environment.
 BUILT_ENV = re.compile(
     r"""(^|[/\\\s'"])(
-        \.?venv[^/\\\s]*        # .venv, venv, venv311, .venv-docs
+        [\w.-]*venv[^/\\\s]*    # .venv, venv, venv311, .venv-docs, ha-venv
       | virtualenvs?             # poetry's ~/.cache/pypoetry/virtualenvs
       | \.tox | \.nox
       | site-packages
@@ -37,7 +37,10 @@ BUILT_ENV = re.compile(
 )
 # Tool-version managers and other ecosystems that happen to live under
 # ~/.local: not a Python environment.
-NOT_PY_ENV = re.compile(r"\.local/(share/)?(mise|asdf|rtx|nvim|pnpm|fnm|go|cargo|rustup)", re.I)
+# Under ~/.local only lib/, bin/ and the Python tool folders hold a Python
+# environment; anything else there (mise, a window manager's files, ...) does not.
+NOT_PY_ENV = re.compile(
+    r"\.local/(?!lib\b|bin\b|pypoetry\b|pipx\b|share/(pypoetry|pipx|virtualenvs)\b|[\w.-]*venv)[^/\s]", re.I)
 # Package-manager download stores: content-addressed, safe without the
 # interpreter in the key.
 DOWNLOAD_STORE = re.compile(
