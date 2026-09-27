@@ -41,6 +41,49 @@ def zopen(path, mode="rt"):
     return open(path, mode.replace("t", ""), encoding="utf-8")
 
 
+PYVAL = re.compile(r"^(pypy-?)?3\.\d{1,2}(\.\d{1,2})?$", re.I)
+
+
+def matrix_combos(matrix):
+    """Expand a strategy.matrix into its list of combinations (dicts)."""
+    import itertools
+    if not isinstance(matrix, dict):
+        return []
+    dims = {k: v for k, v in matrix.items() if k not in ("include", "exclude") and isinstance(v, list)}
+    combos = [dict(zip(dims, vals)) for vals in itertools.product(*dims.values())] if dims else []
+    for inc in matrix.get("include") or []:
+        if isinstance(inc, dict):
+            combos.append(dict(inc))
+    return combos
+
+
+def shares_across_python(text, job_name, key):
+    """True if the job's matrix runs two or more Python versions and nothing in
+    the key separates them: some two combinations with different Python
+    versions produce the same values for every matrix variable the key uses.
+    That is the E2 setup: one Python's environment restored into another's job."""
+    import yaml
+    try:
+        doc = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return False
+    job = ((doc or {}).get("jobs") or {}).get(job_name) or {}
+    combos = matrix_combos((job.get("strategy") or {}).get("matrix"))
+    if not combos:
+        return False
+    pynames = {k for c in combos for k, v in c.items() if PYVAL.match(str(v))}
+    if not pynames:
+        return False
+    used = set(re.findall(r"matrix\.([\w-]+)", key))
+    if "runner.os" in key:
+        used.add("os")
+    groups = {}
+    for c in combos:
+        py = tuple(str(c.get(n)) for n in sorted(pynames))
+        groups.setdefault(tuple(str(c.get(u)) for u in sorted(used)), set()).add(py)
+    return any(len(pys) >= 2 for pys in groups.values())
+
+
 def pct(a, b):
     return round(100.0 * a / b, 1) if b else None
 
@@ -72,12 +115,14 @@ def main():
                 row["repo"] = w["repo"]
                 row["sha"] = w["sha"]
                 row["stratum"] = by_repo[w["repo"]]["stratum"]
+                row["shared_across_python"] = (row["path_kind"] == "built_env" and row["verdict"] != "sound"
+                                               and shares_across_python(w["text"], row["job"], row["key"]))
                 steps.append(row)
 
     fields = ["repo", "stratum", "sha", "file", "job", "step_index", "step_id", "uses", "paths",
               "key", "restore_keys", "skip_on_hit", "path_kind", "path_pins_interpreter",
               "interp_signal", "interp_signal_detail", "deps_hashed", "os_signal",
-              "restore_key_drops_interp", "verdict", "notes"]
+              "restore_key_drops_interp", "verdict", "shared_across_python", "notes"]
     steps.sort(key=lambda r: (r["repo"], r["file"], r["job"], r["step_index"]))
     write_csv(os.path.join(RES, "cache_steps.csv"), steps, fields)
 
@@ -166,6 +211,12 @@ def main():
             / len({s["repo"] for s in built}), 1),
         "top4_repos_steps": sum(sorted(Counter(s["repo"] for s in built).values(), reverse=True)[:4]),
         "repos_retrieved": t1[-1]["retrieved"],
+        # the E2 setup in the wild: one environment cache shared by jobs that
+        # run different Python versions
+        "shared_across_python_steps": sum(1 for s in built if s["shared_across_python"]),
+        "shared_across_python_repos": len({s["repo"] for s in built if s["shared_across_python"]}),
+        "shared_across_python_with_skip": sum(1 for s in built if s["shared_across_python"] and s["skip_on_hit"]),
+        "minor_only_with_skip": sum(1 for s in built if s["verdict"] == "minor_only" and s["skip_on_hit"]),
         "minor_only_steps": sum(1 for s in built if s["verdict"] == "minor_only"),
         "no_interpreter_steps": sum(1 for s in built if s["verdict"] == "no_interpreter"),
         "sound_steps": sum(1 for s in built if s["verdict"] == "sound"),

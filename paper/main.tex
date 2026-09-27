@@ -24,45 +24,45 @@ Incomplete Cache Keys in GitHub Actions}
 \maketitle
 
 \begin{abstract}
-Many GitHub Actions workflows save a Python environment to a cache and reuse
-it on the next run. The cache key decides when the saved environment gets
-reused. So the key is the only record of what that environment depends on.
-Build-systems research has long treated a missing dependency as a bug.
-Research on CI caching has looked at how often caches are used, how much time
-they save, and how they are misconfigured. We look at where those two meet:
-does the key cover what the cached environment depends on? We checked
-\ck{h.repos_sampled} Python repositories. Of \ck{h.built_env_steps} cache steps
-that store a built environment, \ck{h.unsound_steps}
-(\ck{h.unsound_pct_of_built}\%) use a key that leaves out the exact Python
-version. They sit in \ck{h.repos_any_unsound} of the
+GitHub Actions workflows often save a built Python environment to a cache and
+restore it in later runs. Because the cache key alone decides when a saved
+environment is reused, it is the only record of what that environment depends
+on, and it must cover all of it. Build-systems research treats a missing input
+as a correctness bug; research on CI caching has studied adoption, speed and
+storage, but not whether keys are complete. We examined \ck{h.repos_sampled}
+Python repositories. Of \ck{h.built_env_steps} cache steps that store a built
+environment, \ck{h.unsound_steps} (\ck{h.unsound_pct_of_built}\%) use a key
+without the exact Python version, in \ck{h.repos_any_unsound} of the
 \ck{h.repos_caching_built_env} repositories that cache an environment at all.
-We then tested what such a key does on GitHub's own runners. With no Python
-version in the key, a job set up for Python~3.13 ran its tests on Python~3.11
-and passed. That happened with pip, Poetry and uv. With only the minor version
-in the key, a Python patch release broke the build under pip and Poetry. uv
-noticed and rebuilt the environment. We release a linter that flags these
-keys. Code, data and every number in this paper are at \repourl.
+\ck{h.unsound_with_skip_or_restore_keys} of those steps also skip installation
+on a hit or fall back to a prefix key, the two routes by which our experiment
+produced harm. In that controlled experiment on GitHub's runners, a key with
+no Python version made a job set up for Python~3.13 run its tests on 3.11 and
+pass, under pip, Poetry and uv. With only the minor version in the key, a
+patch release broke the build under pip and Poetry, while uv rebuilt the
+environment. We release a linter that flags incomplete keys. The fix is one
+expression, and for pip and Poetry it keeps the time the cache saves. Code,
+data and every number in this paper: \repourl.
 \end{abstract}
 
 \section{Introduction}
 
 A CI service can save a folder at the end of one job and restore it at the
 start of a later one. On GitHub Actions this is the \texttt{actions/cache}
-action. You give it a folder and a key. If a saved copy with that key exists,
-the action restores it and reports a hit. The action's own documentation then
+action. A step names a folder and a key; if a saved copy with that key
+exists, the action restores it and reports a hit. The action's own documentation then
 shows the obvious next step: when the key hits, skip the install
 step~\cite{actionscache}.
 
-That's fine for a cache of downloaded packages. Package managers check what
+That is fine for a cache of downloaded packages. Package managers check what
 they download, and the install step still runs. A \emph{built} environment is
 different. A Python virtual environment remembers the interpreter that created
 it, and its \texttt{python} command is a link to that interpreter. Compiled
-packages inside it were built for that one interpreter version. Restore it
-under a different interpreter and you're reusing a build whose inputs have
-changed. The cache key is what decides whether that happens.
+packages inside it were built for that one interpreter version. Restoring it
+under a different interpreter reuses a build whose inputs have changed. The cache key is what decides whether that happens.
 
 Build-systems research already treats this as a bug: a saved result that
-doesn't account for one of its inputs can produce a wrong
+does not account for one of its inputs can produce a wrong
 build~\cite{mokhov2018build,licker2019incorrect}. Bazel users call the same
 property hermeticity~\cite{zheng2025hermeticity}. Research on CI caching asks
 other questions. It asks how teams adopt and maintain
@@ -76,7 +76,7 @@ under-specified and give incorrect builds. We found no study that measures how
 often the cache keys people write by hand in GitHub Actions workflows cover
 what the cached folder depends on.
 
-This paper makes four contributions.
+This paper makes three contributions.
 \begin{enumerate}
 \item A rule for when a cache key for a built Python environment is complete,
   plus a tool that checks workflow files against it (\S\ref{sec:sound}).
@@ -86,22 +86,22 @@ This paper makes four contributions.
 \item A controlled experiment that restores these caches under pip, Poetry and
   uv on GitHub's runners and records which Python the tests really ran on
   (\S\ref{sec:rq2}).
-\item A look through commit history at how maintainers change these keys
-  (\S\ref{sec:rq3}).
 \end{enumerate}
+We also look through commit history for signs that maintainers run into the
+problem (\S\ref{sec:rq3}).
 
 \section{Background}
 \label{sec:bg}
 
 \paragraph{How \texttt{actions/cache} matches.}
 A cache step has a \texttt{key} and, optionally, a list of
-\texttt{restore-keys}. If a saved entry has exactly the same key, it's restored
+\texttt{restore-keys}. If a saved entry has exactly the same key, it is restored
 and the step's \texttt{cache-hit} output is \texttt{'true'}. If not, each
 restore key is tried as a prefix: any saved key that starts with it counts,
 newest first. A prefix match still restores the files, but
 \texttt{cache-hit} is \texttt{'false'}. Every entry also has a hidden
-\emph{version}. It's a hash of the compression tool and the list of cached
-folders. Entries with different versions never match. That's why a Windows
+\emph{version}. It is a hash of the compression tool and the list of cached
+folders. Entries with different versions never match. That is why a Windows
 cache is never restored on Linux~\cite{actionscache}.
 
 \paragraph{What a virtual environment depends on.}
@@ -111,7 +111,7 @@ runs (\texttt{ubuntu-24.04}, version 20260920.314.1) carried exactly one patch
 release of each minor version: 3.10.21, 3.11.16, 3.12.14, 3.13.15 and 3.14.7.
 Every outcome file under \texttt{data/harm/} records this. A virtual
 environment built on 3.12.10 links to
-\texttt{/opt/hostedtoolcache/Python/3.12.10/x64/bin/python}. That path doesn't
+\texttt{/opt/hostedtoolcache/Python/3.12.10/x64/bin/python}. That path does not
 exist on this image. An environment built on 3.11 links to the 3.11 install,
 and that one does exist, because the image carries several minor versions side
 by side. So a patch mismatch leaves a broken link, while a minor mismatch
@@ -154,8 +154,8 @@ built environment then gets one verdict:
   for example \texttt{matrix.python-version} set to \texttt{"3.12"}.
 \item[no\_interpreter] the key has no Python version at all.
 \item[version\_file] the key hashes \texttt{.python-version} or a similar
-  file. That's sound only if the file pins a patch release, and the workflow
-  alone can't tell us.
+  file. That is sound only if the file pins a patch release, and the workflow
+  alone cannot tell us.
 \end{description}
 Two details matter in practice. When a key uses an environment variable, we
 judge it by the variable's value. When an earlier \texttt{run} step builds the
@@ -168,7 +168,7 @@ The same classifier doubles as a linter:
 \texttt{python -m cachekeys lint .github/workflows}
 \end{center}
 It flags a built-environment cache whose key lacks the exact Python version.
-It's an error if the workflow also skips the install step on a hit, and a
+It is an error if the workflow also skips the install step on a hit, and a
 warning otherwise. The fix is one expression in the key:
 \texttt{\$\{\{ env.pythonLocation \}\}}. setup-python sets it, and on GitHub's
 hosted runners it holds both the exact version and the architecture, for
@@ -180,7 +180,7 @@ architecture.
 
 \paragraph{RQ1: How often do these keys leave out the Python version?}
 We drew repositories from GitHub search. We kept Python repositories that
-weren't forks or archived and had a push in the twelve months before
+were not forks or archived and had a push in the twelve months before
 26 September 2026. We split them into four groups by star count (10--99,
 100--999, 1,000--9,999, 10,000+) and ran one search per creation year in each
 group, keeping at most the first 300 results. That gave \ck{h.frame_size}
@@ -208,7 +208,8 @@ five conditions:
 \item[C1] a sound key, with the environment built and restored on the same
   Python, so the exact key hits. This is the positive control.
 \item[E1] only the minor version in the key. The environment is built on
-  3.12.10 and restored on the image's current 3.12.
+  3.12.10, which setup-python downloads in the seed job because the image does
+  not carry it, and restored on the image's current 3.12.
 \item[E2] no version in the key. The environment is built on 3.11 and
   restored in a job set up for 3.13.
 \item[E3] a sound key, plus a restore key without the version. The exact key
@@ -227,12 +228,12 @@ versions; a test suite that used features of the newer version would fail
 loudly instead. We ran the whole workflow \ck{t3.runs} times. Every action is
 pinned to an exact commit.
 
-\paragraph{RQ3: How do maintainers change these keys?}
+\paragraph{RQ3: Do maintainers run into it?}
 For each workflow file in the sample that caches a built environment, we read
 its 40 most recent commits (fewer if it had fewer) and pulled out every
 edited \texttt{key:} line. A change \emph{adds the interpreter} if the new key has a
-more exact Python version than the old one. It's a \emph{manual bust} if the
-two keys differ only in a counter, such as \texttt{v1} to \texttt{v2}. That's
+more exact Python version than the old one. It is a \emph{manual bust} if the
+two keys differ only in a counter, such as \texttt{v1} to \texttt{v2}. That is
 the CI version of \texttt{make clean}: it throws the cache away without saying
 what was wrong with it. If the number that changed is a version, such as
 \texttt{3.8} to \texttt{3.9}, we call it a \emph{version literal} change.
@@ -269,7 +270,7 @@ cache a built Python environment. The share ranges from
 When they do, the key usually leaves out the Python version
 (Table~\ref{tab:keys}). Of \ck{h.built_env_steps} such steps,
 \ck{h.sound_steps} are sound. \ck{h.minor_only_steps} have only the minor
-version and \ck{h.no_interpreter_steps} have none. Together that's
+version and \ck{h.no_interpreter_steps} have none. Together that is
 \ck{h.unsound_pct_of_built}\%. Another \ck{h.version_file_steps} hash a
 version file. Counting repositories, \ck{h.repos_any_unsound} of
 \ck{h.repos_caching_built_env}
@@ -277,17 +278,38 @@ version file. Counting repositories, \ck{h.repos_any_unsound} of
 incomplete key. Averaged per repository instead of per step, the share of
 incomplete keys is \ck{h.repo_weighted_incomplete_pct}\%, so the four
 repositories with the most steps (\ck{h.top4_repos_steps} steps between them)
-don't drive the result.
+do not drive the result.
+
+How many of these keys can actually cause the harm RQ2 shows? The
+experiment found two routes: restoring an environment and then skipping the
+install step, and a fallback key that restores an environment even when the
+exact key misses. \ck{h.unsound_with_skip_or_restore_keys} of the
+\ck{h.unsound_steps} incomplete keys use at least one of them, and
+\ck{h.repos_exposed} repositories (\ck{h.repos_exposed_pct_of_built_env_repos}\%)
+have an incomplete key that skips the install step. The silent-wrong result
+also needs the same key to be used by jobs on different Python versions. We
+can see one way that happens in a single snapshot: one key shared across a
+matrix of Python versions, with no other matrix variable in the key to tell
+them apart. That occurs in only \ck{h.shared_across_python_steps} steps, in
+\ck{h.shared_across_python_repos} repositories, and
+\ck{h.shared_across_python_with_skip} of them also skips the install step,
+which is the E2 setup exactly. The other way, a project moving to a new Python
+version without changing its lock file, cannot be seen in one snapshot, so this
+count is a lower bound. Minor-only keys that skip the install step
+(\ck{h.minor_only_with_skip}) are set up for the E1 failure at the next patch
+release.
 
 Skipping the install step on a hit is \emph{more} common with sound keys
 (\ck{h.sound_with_skip} of \ck{h.sound_steps}) than with incomplete ones
 (\ck{h.unsound_with_skip} of \ck{h.unsound_steps}). About half of the
 incomplete keys come with restore keys instead
 (\ck{h.unsound_with_restore_keys} of \ck{h.unsound_steps}). Those restore an
-environment even when the exact key misses. RQ2 shows that doesn't make them
+environment even when the exact key misses. RQ2 shows that does not make them
 safe. The exact E3 setup, a sound key whose fallback drops the version,
 appeared \ck{h.sound_steps_with_restore_key_fallback_hazard} times in the
-sample.
+sample. As for why sound keys skip the install step more often, one possible
+reading, which we did not test, is that maintainers who think carefully about
+their keys also optimise their installs.
 
 \subsection{RQ2: What goes wrong}
 \label{sec:rq2}
@@ -328,17 +350,19 @@ fix is to change the key, which RQ3 looks at.
 
 \emph{A restore key without the version (E3) gave pip the wrong Python even
 though the install step ran.} Running \texttt{python -m venv .venv} over an
-existing environment didn't replace its interpreter link, and
+existing environment did not replace its interpreter link, and
 \texttt{pip install} reported every requirement as already satisfied (the
 install output is in each E3 outcome file). Poetry and uv
 rebuilt the environment during the install step. So skipping the install step
-isn't the only way an incomplete key does harm. With pip, restoring the
+is not the only way an incomplete key does harm. With pip, restoring the
 environment at all is enough.
 
-\subsection{RQ3: How keys change}
+\subsection{RQ3: Do maintainers run into it?}
 \label{sec:rq3}
 
-We went through \ck{rq3.workflow_files_scanned} workflow files and found
+This section is qualitative: its categories are heuristic, and the useful
+evidence is in the commit messages. We went through
+\ck{rq3.workflow_files_scanned} workflow files and found
 \ck{rq3.key_changes} separate changes to a cache key, in
 \ck{rq3.commits_with_any_key_change} commits across
 \ck{rq3.repos_with_any_key_change} repositories. A change that merge commits
@@ -371,19 +395,24 @@ bump a counter each time.
 
 \paragraph{For maintainers.} Put the Python version the job actually got, and
 the CPU architecture, into the key. \texttt{\$\{\{ env.pythonLocation \}\}}
-covers both on GitHub's hosted runners. A \texttt{matrix} value like
-\texttt{"3.12"} is what the job \emph{asked for}. It isn't necessarily what got
+covers both on GitHub's hosted runners. The fix costs little: an exact-version
+key misses once each time the runner image moves to a new patch release, and
+hits otherwise. A \texttt{matrix} value like
+\texttt{"3.12"} is what the job \emph{asked for}. It is not necessarily what got
 \emph{installed}. Restore keys need it too.
 
-Could you avoid the problem by caching only the package manager's download
-folder and rebuilding the environment each time? That needs no Python version
-in the key, but it isn't free. We timed it (\texttt{bench.yml}): a typical
+Caching only the package manager's download folder, and rebuilding the
+environment each time, would also avoid the problem. It needs no Python
+version in the key, but it is not free. We timed it (\texttt{bench.yml}): a typical
 data-project stack of 12 pinned packages, three strategies, three tools, five
 runs each, \ck{t4.timed_jobs} timed jobs in all. Table~\ref{tab:bench} shows
 the time from the cache restore to the end of the install step. For pip,
 restoring the built environment took \ck{t4.pip_venv_median_s}~s, and rebuilding
 from the download cache took \ck{t4.pip_download_median_s}~s. For Poetry it was
-\ck{t4.poetry_venv_median_s}~s against \ck{t4.poetry_download_median_s}~s. uv
+\ck{t4.poetry_venv_median_s}~s against \ck{t4.poetry_download_median_s}~s.
+For pip the download cache barely helped at all:
+\ck{t4.pip_download_median_s}~s, against \ck{t4.pip_none_median_s}~s with no
+cache. uv
 was fast every way: \ck{t4.uv_none_median_s}~s with no cache at all. So for pip
 and Poetry, caching the built environment is worth keeping, with the exact
 Python version in the key. For uv, caching the environment gains little.
@@ -409,7 +438,7 @@ environment was valid, just for a different Python.
 
 \section{Limits of This Study}
 
-\emph{The classifier.} It reads workflow text with patterns. It doesn't follow
+\emph{The classifier.} It reads workflow text with patterns. It does not follow
 keys set inside reusable workflows or composite actions, and it can misread
 unusual folder names. We checked it against hand labels in two rounds of 100
 cache steps each, drawn at random with fixed seeds and with no step in both.
@@ -430,7 +459,7 @@ the written rules. In \ck{t5.disagreements_tool_follows_rubric} the rules
 support the classifier. \ck{t5.disagreements_classifier_error} was a
 classifier error: a rule counts \texttt{\textasciitilde/.local/bin} as a Python
 environment, and one step cached a non-Python program there. In
-\ck{t5.disagreements_undecidable} the workflow file alone can't settle it.
+\ck{t5.disagreements_undecidable} the workflow file alone cannot settle it.
 Each call, with the rule it rests on, is in
 \texttt{data/validation/adjudication\_round2.csv}. We did not change the
 classifier after seeing the round 2 labels. Two caveats: the labels come from
@@ -442,11 +471,14 @@ image, one date and fixed tool versions. The results matched across runs, but
 other versions of these tools may behave differently. The timings in
 Table~\ref{tab:bench} come from one set of packages on one day, and runner
 timing is noisy, so treat them as rough sizes. \emph{The sample.} It comes from
-GitHub search, which returns at most 300 results per query, so it isn't a
+GitHub search, which returns at most 300 results per query, so it is not a
 uniform sample of GitHub. We saw each workflow only at its latest commit, and
 the history study read at most 40 commits per file. We only looked at Python.
+The silent-wrong result depends on GitHub's current practice of keeping several
+minor versions of Python on each runner image. If an image carried only one,
+E2 would become a loud failure like E1.
 The same problem may apply to \texttt{node\_modules} with compiled add-ons and
-to Rust's \texttt{target/} folder. We didn't check.
+to Rust's \texttt{target/} folder. We did not check.
 
 \begin{table}[t]\centering\small
 \caption{Round 2: how often the classifier agreed with hand labels on 100 cache
@@ -473,7 +505,7 @@ what the cached environment does. \citet{zheng2025hermeticity}
 study hermeticity in Bazel builds.
 
 \emph{CI caching.} \citet{gallaba2022kotinos} infer build dependencies inside a
-CI service and cache whole build environments, so that correctness doesn't
+CI service and cache whole build environments, so that correctness does not
 depend on hand-maintained dependency declarations. We study the hand-written
 case they avoid. \citet{hasan2026caching} study how GitHub Actions projects
 adopt and change their caching setup. There, key changes show up as
