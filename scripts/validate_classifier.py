@@ -80,6 +80,13 @@ def score(labels_file, prefix):
     summary["verdict_both_built_env_agree"] = sum(a == b for a, b in both)
     summary["verdict_both_built_env_pct"] = (round(100 * summary["verdict_both_built_env_agree"] / len(both), 1)
                                              if both else None)
+    adj = os.path.join(VAL, "adjudication_round2.csv")
+    if prefix == "table5" and os.path.exists(adj):
+        with open(adj, encoding="utf-8") as f:
+            res = Counter(r["resolution"] for r in csv.DictReader(f))
+        summary["disagreements_checked"] = sum(res.values())
+        for k in ("tool_follows_rubric", "classifier_error", "undecidable"):
+            summary[f"disagreements_{k}"] = res.get(k, 0)
     with open(os.path.join(RES, f"{prefix}_validation.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
         w.writeheader()

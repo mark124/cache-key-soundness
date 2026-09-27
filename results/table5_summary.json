@@ -1,0 +1,15 @@
+{
+  "path_kind_labelled": 100,
+  "path_kind_agree": 77,
+  "path_kind_agreement_pct": 77.0,
+  "verdict_labelled": 100,
+  "verdict_agree": 67,
+  "verdict_agreement_pct": 67.0,
+  "verdict_both_built_env_n": 54,
+  "verdict_both_built_env_agree": 43,
+  "verdict_both_built_env_pct": 79.6,
+  "disagreements_checked": 34,
+  "disagreements_tool_follows_rubric": 31,
+  "disagreements_classifier_error": 1,
+  "disagreements_undecidable": 2
+}

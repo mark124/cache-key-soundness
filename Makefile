@@ -13,6 +13,7 @@ rq3:                      ## key changes mined from workflow history (Section 5.
 table4:                   ## timing: built-env cache vs download cache (bench.yml)
 	$(PY) scripts/collect_bench.py table
 table5:                   ## classifier vs hand labels
+	$(PY) scripts/adjudicate_round2.py
 	$(PY) scripts/validate_classifier.py
 test:
 	$(PY) -m pytest -q tests

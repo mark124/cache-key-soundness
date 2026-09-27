@@ -374,8 +374,29 @@ environment was valid, just for a different Python.
 
 \emph{The classifier.} It reads workflow text with patterns. It doesn't follow
 keys set inside reusable workflows or composite actions, and it can misread
-unusual folder names. Table~\ref{tab:val} reports how often it agreed with
-hand labels. The hand labels come from one person, the author.
+unusual folder names. We checked it against hand labels in two rounds of 100
+cache steps each, drawn at random with fixed seeds and with no step in both.
+In round 1 the labeller worked from a shortened version of the rules that left
+out several kinds of built environment. Agreement was
+\ck{t5r1.path_kind_agreement_pct}\% on folder type, and the round exposed one
+classifier bug, which we fixed. Round 2 used the full rules, shown on screen
+for every step (Table~\ref{tab:val}). Agreement was
+\ck{t5.path_kind_agreement_pct}\% on folder type and
+\ck{t5.verdict_agreement_pct}\% on the verdict. Where both said the step
+stores a built environment, the verdict agreed on
+\ck{t5.verdict_both_built_env_agree} of \ck{t5.verdict_both_built_env_n}. We
+then checked each of the \ck{t5.disagreements_checked} disagreements against
+the written rules. In \ck{t5.disagreements_tool_follows_rubric} the rules
+support the classifier. \ck{t5.disagreements_classifier_error} was a
+classifier error: a rule counts \texttt{\textasciitilde/.local/bin} as a Python
+environment, and one step cached a non-Python program there. In
+\ck{t5.disagreements_undecidable} the workflow file alone can't settle it.
+Each call, with the rule it rests on, is in
+\texttt{data/validation/adjudication\_round2.csv}. We did not change the
+classifier after seeing the round 2 labels. Two caveats: the labels come from
+one person, the author, and the disagreements were checked by the tool's
+author, so neither step is independent. A second, independent labeller would
+make this check stronger.
 \emph{The experiments.} The main experiment uses one test project, one runner
 image, one date and fixed tool versions. The results matched across runs, but
 other versions of these tools may behave differently. The timings in
@@ -388,14 +409,16 @@ The same problem may apply to \texttt{node\_modules} with compiled add-ons and
 to Rust's \texttt{target/} folder. We didn't check.
 
 \begin{table}[t]\centering\small
-\caption{How often the classifier agreed with hand labels, on a random sample
-of cache steps drawn with a fixed seed. Produced by \texttt{make table5} from
-\texttt{results/table5\_validation.csv}.}
+\caption{Round 2: how often the classifier agreed with hand labels on 100 cache
+steps drawn at random with a fixed seed. Produced by \texttt{make table5} from
+\texttt{results/table5\_validation.csv}; every disagreement and the rule it
+turns on is in \texttt{data/validation/adjudication\_round2.csv}.}
 \label{tab:val}
 \begin{tabular}{lrr}\toprule
 Field & Labelled & Agreement (\%) \\\midrule
-Path kind & \ck{t5.path_kind_labelled} & \ck{t5.path_kind_agreement_pct} \\
+Folder type & \ck{t5.path_kind_labelled} & \ck{t5.path_kind_agreement_pct} \\
 Verdict & \ck{t5.verdict_labelled} & \ck{t5.verdict_agreement_pct} \\
+Verdict, both said built environment & \ck{t5.verdict_both_built_env_n} & \ck{t5.verdict_both_built_env_pct} \\
 \bottomrule\end{tabular}
 \end{table}
 
