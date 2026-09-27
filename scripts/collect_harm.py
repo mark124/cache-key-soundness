@@ -8,6 +8,8 @@ data/harm/run-<id>/run.json (run metadata and URL) so each outcome links to
 its public log. table reads only those committed files.
 
 Outcome classes, per (condition, tool, run):
+  correct_hit       exact key hit, environment reused as built, tests ran on
+                    the requested interpreter        (the cache working)
   correct_miss      exact key missed, environment rebuilt, tests ran on the
                     requested interpreter                    (the fix working)
   self_healed       cache hit, but the tool noticed and rebuilt the
@@ -48,7 +50,7 @@ def fetch(run_ids):
         print(f"run {rid}: {len(glob.glob(os.path.join(d, 'outcome-*.json')))} outcomes")
 
 
-LABEL = {"correct_miss": "correct", "self_healed": "self-healed",
+LABEL = {"correct_miss": "correct (miss)", "correct_hit": "correct (hit)", "self_healed": "self-healed",
          "loud_failure": "loud failure", "silent_wrong": "silent wrong"}
 
 
@@ -58,7 +60,13 @@ def classify(o: dict) -> str:
     ran = (o.get("probe") or {}).get("version", "")
     if ran and ran != o["leg_actual"]:
         return "silent_wrong"
-    return "self_healed" if o["cache_hit"] else "correct_miss"
+    if not o["cache_hit"]:
+        return "correct_miss"
+    # a hit that ran on the Python the environment was built with is a plain,
+    # correct cache hit; a hit that ran on a different (requested) Python means
+    # the tool noticed and rebuilt the environment itself
+    seed = (o.get("seed") or {}).get("python_version", "")
+    return "correct_hit" if ran == seed else "self_healed"
 
 
 def table():
@@ -95,7 +103,7 @@ def table():
             w.writerow([c] + ["/".join(sorted(LABEL[o] for o in cell[(c, t)])) or "-" for t in ("pip", "poetry", "uv")])
     oc = Counter(r["outcome"] for r in rows)
     summary = {"runs": len({r["run_id"] for r in rows}), "outcomes": len(rows),
-               **{f"n_{k}": oc.get(k, 0) for k in ("correct_miss", "self_healed", "loud_failure", "silent_wrong")},
+               **{f"n_{k}": oc.get(k, 0) for k in ("correct_miss", "correct_hit", "self_healed", "loud_failure", "silent_wrong")},
                "pairs_inconsistent_across_runs": sum(1 for v in cell.values() if len(v) > 1)}
     for r in rows:
         summary.setdefault(f'{r["condition"]}_{r["tool"]}_outcome', r["outcome"])

@@ -2,7 +2,10 @@
 # restored under a key that omits part of what the environment depends on,
 # and the workflow skips installation on a cache hit.
 #
-#   C0  sound key       key carries the full interpreter version (control)
+#   C0  sound key       key carries the full interpreter version; seeded on an
+#                       older patch, so the exact key misses (negative control)
+#   C1  sound key       seeded and restored on the same Python, so the exact
+#                       key hits (positive control)
 #   E1  minor-only key  seeded on an older 3.12 patch, restored on current 3.12
 #   E2  no version      seeded on 3.11, restored on a 3.13 leg
 #   E3  sound key, but a version-less restore-keys prefix: the exact key
@@ -25,10 +28,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition: [C0, E1, E2, E3]
+        condition: [C0, C1, E1, E2, E3]
         tool: [pip, poetry, uv]
         include:
           - {condition: C0, seed_py: "3.12.10", keyver: full}
+          - {condition: C1, seed_py: "3.12", keyver: full}
           - {condition: E1, seed_py: "3.12.10", keyver: "3.12"}
           - {condition: E2, seed_py: "3.11", keyver: none}
           - {condition: E3, seed_py: "3.11", keyver: full}
@@ -60,10 +64,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition: [C0, E1, E2, E3]
+        condition: [C0, C1, E1, E2, E3]
         tool: [pip, poetry, uv]
         include:
           - {condition: C0, leg_py: "3.12", keyver: full}
+          - {condition: C1, leg_py: "3.12", keyver: full}
           - {condition: E1, leg_py: "3.12", keyver: "3.12"}
           - {condition: E2, leg_py: "3.13", keyver: none}
           - {condition: E3, leg_py: "3.13", keyver: full}
@@ -88,7 +93,7 @@ jobs:
           restore-keys: ${{ matrix.condition == 'E3' && format('exp-{0}-{1}-E3-{2}-', github.run_id, github.run_attempt, matrix.tool) || '' }}
       # The pattern under study: skip installation whenever the key matched.
       - if: steps.cache.outputs.cache-hit != 'true'
-        run: bash scripts/build_env.sh "${{ matrix.tool }}" "${{ steps.py.outputs.python-path }}"
+        run: bash scripts/build_env.sh "${{ matrix.tool }}" "${{ steps.py.outputs.python-path }}" 2>&1 | tee install.log
       - name: test (outcome recorded, never fails the job)
         env:
           CONDITION: ${{ matrix.condition }}

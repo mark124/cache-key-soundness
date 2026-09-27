@@ -45,6 +45,8 @@ record = {
     "run_id": env.get("GITHUB_RUN_ID"),
     "run_attempt": env.get("GITHUB_RUN_ATTEMPT"),
     "log_tail": log[-4000:],
+    "install_ran": os.path.exists("install.log"),
+    "install_log_tail": open("install.log", errors="replace").read()[-4000:] if os.path.exists("install.log") else "",
 }
 with open(out, "w") as f:
     json.dump(record, f, indent=2)
