@@ -12,10 +12,11 @@ from .analyze import analyze_workflow
 
 ADVICE = {
     "minor_only": "the key carries only the minor Python version; a patch release changes the "
-                  "interpreter the cached environment links to. Use "
-                  "steps.<setup-python id>.outputs.python-version in the key.",
+                  "interpreter the cached environment links to. Put ${{ env.pythonLocation }} in the "
+                  "key (exact version and CPU architecture).",
     "no_interpreter": "the key carries no Python version; the cached environment can be restored "
-                      "under a different interpreter. Add steps.<setup-python id>.outputs.python-version.",
+                      "under a different interpreter. Put ${{ env.pythonLocation }} in the key "
+                      "(exact version and CPU architecture).",
 }
 
 

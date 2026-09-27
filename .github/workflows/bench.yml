@@ -2,7 +2,7 @@
 #
 #   none      no cache: build the environment from the network
 #   download  restore only the package manager's download folder, then
-#             build the environment (the strategy the paper recommends)
+#             build the environment (the alternative Section 6 examines)
 #   venv      restore the built environment and skip install on a hit
 #             (the strategy most sampled repositories use)
 #

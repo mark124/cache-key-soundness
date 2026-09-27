@@ -199,7 +199,9 @@ def judge(c: CacheStep) -> str:
 
     not_applicable   the cached path is not a built Python environment
     sound            built env; key carries the exact interpreter (or the path
-                     pins it) and a dependency hash
+                     pins it). This judges the Python version only: the
+                     dependency hash, OS and CPU architecture are reported
+                     as separate columns (deps_hashed, os_signal)
     minor_only       key carries only the minor version (e.g. 3.12)
     no_interpreter   key carries no interpreter version at all
     version_file     key hashes a version file (.python-version etc.); sound

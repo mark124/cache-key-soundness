@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import csv
 import glob
+import shutil
 import json
 import os
 import subprocess
@@ -41,7 +42,7 @@ def fetch(run_ids):
         # gh puts each artifact in its own folder; flatten
         for p in glob.glob(os.path.join(d, "outcome-*", "*.json")):
             os.replace(p, os.path.join(d, os.path.basename(p)))
-            os.rmdir(os.path.dirname(p))
+            shutil.rmtree(os.path.dirname(p), ignore_errors=True)
         meta = subprocess.run(["gh", "run", "view", rid, "-R", REPO, "--json",
                                "databaseId,url,headSha,createdAt,conclusion,attempt"],
                               capture_output=True, text=True, check=True).stdout

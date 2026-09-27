@@ -33,7 +33,7 @@ committed under `data/`.
 | Table 4 (timing of cache strategies) | `make table4` → `scripts/collect_bench.py table` | `results/table4_bench.csv`, `results/table4_bench_raw.csv`, `results/table4_summary.json` |
 | Table 5 (classifier validation) | `make table5` → `scripts/validate_classifier.py` | `results/table5_validation.csv`, `results/table5_summary.json` |
 | §5.3 (key history, no table) | `make rq3` → `scripts/mine_key_fixes.py table` | `results/rq3_key_changes.csv`, `results/rq3_summary.json` |
-| Every `\ck{...}` number in the PDF | `python scripts/make_numbers.py v1.0` | `paper/numbers.tex` |
+| Every `\ck{...}` number in the PDF | `python scripts/make_numbers.py v1.0` | `paper/numbers.tex`, and **`NUMBERS.csv`**: every number in the paper with its value and source file and line |
 
 Every number in the PDF is a hyperlink to the line of the results file it
 comes from, at tag `v1.0`.
@@ -42,11 +42,11 @@ comes from, at tag `v1.0`.
 
 | Path | Contents |
 |---|---|
-| `data/raw/frame.jsonl` | sampling frame: every repository returned by the search queries (query string recorded per row) |
-| `data/raw/sample.jsonl` | the seeded random sample (seed `20260926`) |
-| `data/raw/manifest.jsonl` | per sampled repository: HEAD commit SHA and every workflow file (name, blob SHA) |
+| `data/raw/frame.jsonl.gz` | sampling frame: every repository returned by the search queries (query string recorded per row) |
+| `data/raw/sample.jsonl.gz` | the seeded random sample (seed `20260926`) |
+| `data/raw/manifest.jsonl.gz` | per sampled repository: HEAD commit SHA and every workflow file (name, blob SHA) |
 | `data/raw/cache_workflows.jsonl.gz` | full text of each workflow file that mentions `actions/cache`, at that SHA |
-| `data/raw/key_changes.jsonl` | commits that changed a cache `key:` line in those files |
+| `data/raw/key_changes.jsonl.gz` | commits that changed a cache `key:` line in those files |
 | `data/harm/run-*/` | outcome records downloaded from the public `harm` workflow runs, with run URLs |
 | `data/bench/run-*/` | timing records from the public `bench` workflow run (Table 4), with the run URL |
 | `data/validation/labels.csv` | hand labels for the classifier check; rubric in `RUBRIC.md` |

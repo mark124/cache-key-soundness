@@ -68,9 +68,13 @@ property hermeticity~\cite{zheng2025hermeticity}. Research on CI caching asks
 other questions. It asks how teams adopt and maintain
 caching~\cite{hasan2026caching}, whether caching saves
 time~\cite{ghaleb2026travis,bouzenia2024resource}, and which settings waste
-storage or cause misses~\cite{urdih2026smells,khatami2024smells}. We found no
-study that asks whether a CI cache key covers what the cached folder depends
-on.
+storage or cause misses~\cite{urdih2026smells,khatami2024smells}. Closest to
+our question, \citet{gallaba2022kotinos} avoid hand-written dependency
+declarations altogether: their CI service infers dependencies and caches whole
+build environments, because hand-maintained dependency graphs can be
+under-specified and give incorrect builds. We found no study that measures how
+often the cache keys people write by hand in GitHub Actions workflows cover
+what the cached folder depends on.
 
 This paper makes four contributions.
 \begin{enumerate}
@@ -116,13 +120,22 @@ leaves a working link to the wrong Python.
 \section{When Is a Cache Key Complete?}
 \label{sec:sound}
 
-We call a cache step \emph{sound} when its key determines everything the cached
-folder depends on. The folder list counts too, because \texttt{actions/cache}
-folds it into the hidden version. For a built Python environment the inputs
-are the exact Python version, the dependency list, and the platform.
-\ck{h.built_with_deps_hash} of the \ck{h.built_env_steps} keys we studied
-already include the dependency list, as a hash of a lock file. The hidden
-version partly covers the platform. So we focus on the Python version.
+A cache key is \emph{complete} when it, together with the folder list that
+\texttt{actions/cache} folds into the hidden version, determines everything
+the cached folder depends on. For a built Python environment that is the exact
+Python version, the dependency list, the operating system and the CPU
+architecture. \ck{h.built_with_deps_hash} of the \ck{h.built_env_steps} keys
+we studied hash a dependency file, \ck{h.built_hashing_lock_file} of them a
+lock file. The hidden version is built only from the compression tool and the
+folder list~\cite{actionscache}, so it separates Windows from Linux but not
+one CPU architecture from another.
+
+Our verdicts judge the Python version only, because that is the input our
+experiment varies. We call a step \emph{sound} when its key pins the exact
+Python version, and report the other inputs separately. Of the
+\ck{h.sound_steps} sound keys, \ck{h.sound_with_deps_and_os} also hash a
+dependency file and name the operating system, and \ck{h.sound_without_arch}
+carry nothing that identifies the CPU architecture.
 
 Our classifier (\texttt{cachekeys/analyze.py}) first works out what a cache
 step stores. A \emph{built environment} is a virtual environment
@@ -157,7 +170,11 @@ The same classifier doubles as a linter:
 It flags a built-environment cache whose key lacks the exact Python version.
 It's an error if the workflow also skips the install step on a hit, and a
 warning otherwise. The fix is one expression in the key:
-\texttt{\$\{\{ steps.<setup-python id>.outputs.python-version \}\}}.
+\texttt{\$\{\{ env.pythonLocation \}\}}. setup-python sets it, and on GitHub's
+hosted runners it holds both the exact version and the architecture, for
+example \texttt{/opt/hostedtoolcache/Python/3.12.14/x64}. setup-python's
+\texttt{python-version} output also pins the version, but not the
+architecture.
 
 \section{Study Design}
 
@@ -171,7 +188,9 @@ repositories. From those we drew a random sample, with a fixed seed, of up to
 1,000 per group: \ck{h.repos_sampled} in all. The 10,000+ group had only
 \ck{h.frame_s4} repositories, so we took all of them. For each repository we
 downloaded every file in \texttt{.github/workflows} at the latest commit on
-the default branch, and classified every step that restores a cache. The commit IDs are recorded, and every workflow file that uses
+the default branch, and classified every step that restores a cache. All
+\ck{h.repos_retrieved} repositories were retrieved. The commit IDs are
+recorded, and every workflow file that uses
 \texttt{actions/cache} is committed to our repository.
 
 \paragraph{RQ2: What happens when such a key matches?}
@@ -182,9 +201,12 @@ PyYAML, which contains compiled code, and records which Python ran it. We test
 pip with \texttt{venv}, Poetry~2.5.1 with the environment inside the project,
 and uv~0.12.19. Each uses its standard commands (\texttt{python -m venv} and
 \texttt{pip install}, \texttt{poetry install}, \texttt{uv sync}). There are
-four conditions:
+five conditions:
 \begin{description}
-\item[C0] a sound key. This is the control.
+\item[C0] a sound key, with the environment built on 3.12.10 and restored on
+  the image's 3.12, so the exact key misses. This is the negative control.
+\item[C1] a sound key, with the environment built and restored on the same
+  Python, so the exact key hits. This is the positive control.
 \item[E1] only the minor version in the key. The environment is built on
   3.12.10 and restored on the image's current 3.12.
 \item[E2] no version in the key. The environment is built on 3.11 and
@@ -193,12 +215,17 @@ four conditions:
   misses, the prefix restores the 3.11 environment, and the install step runs.
 \end{description}
 As in the action's documentation, the install step is skipped when
-\texttt{cache-hit} is \texttt{'true'}. Each result falls into one of four
-groups: \emph{correct} (tests ran on the Python the job asked for),
+\texttt{cache-hit} is \texttt{'true'}. Each outcome file also records the
+install step's own output. Each result falls into one of four groups:
+\emph{correct} (tests ran on the Python the job asked for, after a hit or a
+miss),
 \emph{self-healed} (the tool rebuilt the environment by itself), \emph{loud
 failure} (the test step failed), or \emph{silent wrong} (the test step passed
-on a different Python). We ran the whole workflow \ck{t3.runs} times. Every
-action is pinned to an exact commit.
+on a different Python). The test passes on any Python that can import its
+packages. So \emph{silent wrong} applies to code that runs the same on both
+versions; a test suite that used features of the newer version would fail
+loudly instead. We ran the whole workflow \ck{t3.runs} times. Every action is
+pinned to an exact commit.
 
 \paragraph{RQ3: How do maintainers change these keys?}
 For each workflow file in the sample that caches a built environment, we read
@@ -247,14 +274,20 @@ version and \ck{h.no_interpreter_steps} have none. Together that's
 version file. Counting repositories, \ck{h.repos_any_unsound} of
 \ck{h.repos_caching_built_env}
 (\ck{h.repos_any_unsound_pct_of_built_env_repos}\%) have at least one
-incomplete key.
+incomplete key. Averaged per repository instead of per step, the share of
+incomplete keys is \ck{h.repo_weighted_incomplete_pct}\%, so the four
+repositories with the most steps (\ck{h.top4_repos_steps} steps between them)
+don't drive the result.
 
 Skipping the install step on a hit is \emph{more} common with sound keys
 (\ck{h.sound_with_skip} of \ck{h.sound_steps}) than with incomplete ones
 (\ck{h.unsound_with_skip} of \ck{h.unsound_steps}). About half of the
 incomplete keys come with restore keys instead
-(\ck{h.unsound_with_restore_keys} of \ck{h.unsound_steps}). Those restore an environment even when the exact key
-misses. RQ2 shows that doesn't make them safe.
+(\ck{h.unsound_with_restore_keys} of \ck{h.unsound_steps}). Those restore an
+environment even when the exact key misses. RQ2 shows that doesn't make them
+safe. The exact E3 setup, a sound key whose fallback drops the version,
+appeared \ck{h.sound_steps_with_restore_key_fallback_hazard} times in the
+sample.
 
 \subsection{RQ2: What goes wrong}
 \label{sec:rq2}
@@ -270,8 +303,9 @@ records, with links to the public logs, are in
 \end{table}
 
 Table~\ref{tab:harm} shows the results. All \ck{t3.runs} runs agreed in every
-cell. The control (C0) worked as it should: each tool missed the cache,
-rebuilt, and tested on the Python the job asked for.
+cell. Both controls worked as they should. With C0 each tool missed the
+cache, rebuilt, and tested on the Python the job asked for. With C1 each tool
+hit the cache, skipped the install step, and tested on the right Python.
 
 \emph{With no version in the key (E2), every tool produced a passing build on
 the wrong Python.} The job asked for \ck{t3.E2_pip_asked}. The restored
@@ -295,7 +329,8 @@ fix is to change the key, which RQ3 looks at.
 \emph{A restore key without the version (E3) gave pip the wrong Python even
 though the install step ran.} Running \texttt{python -m venv .venv} over an
 existing environment didn't replace its interpreter link, and
-\texttt{pip install} reported everything as already installed. Poetry and uv
+\texttt{pip install} reported every requirement as already satisfied (the
+install output is in each E3 outcome file). Poetry and uv
 rebuilt the environment during the install step. So skipping the install step
 isn't the only way an incomplete key does harm. With pip, restoring the
 environment at all is enough.
@@ -305,6 +340,7 @@ environment at all is enough.
 
 We went through \ck{rq3.workflow_files_scanned} workflow files and found
 \ck{rq3.key_changes} separate changes to a cache key, in
+\ck{rq3.commits_with_any_key_change} commits across
 \ck{rq3.repos_with_any_key_change} repositories. A change that merge commits
 repeat is counted once. \ck{rq3.commits_adds_interpreter} commits in
 \ck{rq3.repos_with_adds_interpreter} repositories added a Python version to a
@@ -333,8 +369,9 @@ bump a counter each time.
 
 \section{What To Do About It}
 
-\paragraph{For maintainers.} Put the Python version the job actually got into
-the key. setup-python gives it to you as an output. A \texttt{matrix} value like
+\paragraph{For maintainers.} Put the Python version the job actually got, and
+the CPU architecture, into the key. \texttt{\$\{\{ env.pythonLocation \}\}}
+covers both on GitHub's hosted runners. A \texttt{matrix} value like
 \texttt{"3.12"} is what the job \emph{asked for}. It isn't necessarily what got
 \emph{installed}. Restore keys need it too.
 
@@ -378,13 +415,16 @@ unusual folder names. We checked it against hand labels in two rounds of 100
 cache steps each, drawn at random with fixed seeds and with no step in both.
 In round 1 the labeller worked from a shortened version of the rules that left
 out several kinds of built environment. Agreement was
-\ck{t5r1.path_kind_agreement_pct}\% on folder type, and the round exposed one
+\ck{t5r1.path_kind_agreement_pct}\% on folder type and
+\ck{t5r1.verdict_agreement_pct}\% on the verdict, and the round exposed one
 classifier bug, which we fixed. Round 2 used the full rules, shown on screen
-for every step (Table~\ref{tab:val}). Agreement was
+for every step (Table~\ref{tab:val}). Where both the label and the classifier
+said the step stores a built environment, the verdict agreed on
+\ck{t5.verdict_both_built_env_agree} of \ck{t5.verdict_both_built_env_n}
+(\ck{t5.verdict_both_built_env_pct}\%). Over all 100 steps, agreement was
 \ck{t5.path_kind_agreement_pct}\% on folder type and
-\ck{t5.verdict_agreement_pct}\% on the verdict. Where both said the step
-stores a built environment, the verdict agreed on
-\ck{t5.verdict_both_built_env_agree} of \ck{t5.verdict_both_built_env_n}. We
+\ck{t5.verdict_agreement_pct}\% on the verdict, against round 1's
+\ck{t5r1.verdict_agreement_pct}\%. We
 then checked each of the \ck{t5.disagreements_checked} disagreements against
 the written rules. In \ck{t5.disagreements_tool_follows_rubric} the rules
 support the classifier. \ck{t5.disagreements_classifier_error} was a
@@ -432,7 +472,10 @@ experiment uses a similar idea: change one input, the Python version, and see
 what the cached environment does. \citet{zheng2025hermeticity}
 study hermeticity in Bazel builds.
 
-\emph{CI caching.} \citet{hasan2026caching} study how GitHub Actions projects
+\emph{CI caching.} \citet{gallaba2022kotinos} infer build dependencies inside a
+CI service and cache whole build environments, so that correctness doesn't
+depend on hand-maintained dependency declarations. We study the hand-written
+case they avoid. \citet{hasan2026caching} study how GitHub Actions projects
 adopt and change their caching setup. There, key changes show up as
 maintenance, and a badly designed key is described as causing repeated misses.
 \citet{urdih2026smells} list ten cache smells in GitLab CI. Nine are about

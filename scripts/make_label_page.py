@@ -19,10 +19,18 @@ ROOT = os.path.join(os.path.dirname(__file__), "..")
 VAL = os.path.join(ROOT, "data", "validation")
 
 
+def zopen(path, mode="rt"):
+    """Open a .gz file as text, or a plain file; raw data is stored gzipped."""
+    import gzip
+    if str(path).endswith(".gz"):
+        return gzip.open(path, mode, encoding="utf-8", newline="\n" if mode[0] in "wa" else None)
+    return open(path, mode.replace("t", ""), encoding="utf-8")
+
+
 def main():
     rows = list(csv.DictReader(open(os.path.join(VAL, "labels.csv"), encoding="utf-8")))
     shas = {}
-    for m in open(os.path.join(ROOT, "data", "raw", "manifest.jsonl"), encoding="utf-8"):
+    for m in zopen(os.path.join(ROOT, "data", "raw", "manifest.jsonl.gz")):
         r = json.loads(m)
         shas[r["repo"]] = r.get("sha", "")
     for r in rows:

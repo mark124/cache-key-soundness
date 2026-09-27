@@ -5,12 +5,12 @@ writes, so reviewers never need to run it.
   1. frame    GitHub repository search: Python repositories, not forks, not
               archived, pushed in the 12 months before the snapshot date,
               four star strata x one query per creation year.
-              -> data/raw/frame.jsonl
+              -> data/raw/frame.jsonl.gz
   2. sample   seeded random sample of up to N repositories per stratum.
-              -> data/raw/sample.jsonl
+              -> data/raw/sample.jsonl.gz
   3. fetch    for each sampled repository, the default-branch HEAD commit and
               every .github/workflows/*.yml|yaml blob at that commit (GraphQL).
-              -> data/raw/manifest.jsonl       one line per repo: sha + files
+              -> data/raw/manifest.jsonl.gz       one line per repo: sha + files
               -> data/raw/cache_workflows.jsonl.gz  text of every workflow
                  file that mentions actions/cache (the only ones analysed)
 
@@ -37,6 +37,14 @@ PAGES_PER_QUERY = 3          # 300 results per (stratum, year) query
 PER_STRATUM = 1000
 SEED = 20260926
 RAW = os.path.join(os.path.dirname(__file__), "..", "data", "raw")
+
+
+def zopen(path, mode="rt"):
+    """Open a .gz file as text, or a plain file; raw data is stored gzipped."""
+    import gzip
+    if str(path).endswith(".gz"):
+        return gzip.open(path, mode, encoding="utf-8", newline="\n" if mode[0] in "wa" else None)
+    return open(path, mode.replace("t", ""), encoding="utf-8")
 
 
 def token() -> str:
@@ -69,7 +77,7 @@ def _req(url, data=None):
 
 
 def frame():
-    out = os.path.join(RAW, "frame.jsonl")
+    out = os.path.join(RAW, "frame.jsonl.gz")
     seen = {}
     for sname, stars in STRATA:
         for y in YEARS:
@@ -90,21 +98,21 @@ def frame():
                 time.sleep(2.2)      # search API: 30 requests/minute
                 if len(items) < 100:
                     break
-    with open(out, "w", newline="\n") as f:
+    with zopen(out, "wt") as f:
         for r in sorted(seen.values(), key=lambda r: r["repo"]):
             f.write(json.dumps(r) + "\n")
     print(f"frame: {len(seen)} repositories -> {out}")
 
 
 def sample():
-    rows = [json.loads(l) for l in open(os.path.join(RAW, "frame.jsonl"))]
+    rows = [json.loads(l) for l in zopen(os.path.join(RAW, "frame.jsonl.gz"))]
     rng = random.Random(SEED)
     chosen = []
     for sname, _ in STRATA:
         pool = sorted((r for r in rows if r["stratum"] == sname), key=lambda r: r["repo"])
         chosen += rng.sample(pool, min(PER_STRATUM, len(pool)))
-    out = os.path.join(RAW, "sample.jsonl")
-    with open(out, "w", newline="\n") as f:
+    out = os.path.join(RAW, "sample.jsonl.gz")
+    with zopen(out, "wt") as f:
         for r in sorted(chosen, key=lambda r: r["repo"]):
             f.write(json.dumps(r) + "\n")
     print(f"sample: {len(chosen)} repositories -> {out}")
@@ -121,14 +129,14 @@ GQL_REPO = """
 
 
 def fetch():
-    rows = [json.loads(l) for l in open(os.path.join(RAW, "sample.jsonl"))]
-    man_path = os.path.join(RAW, "manifest.jsonl")
+    rows = [json.loads(l) for l in zopen(os.path.join(RAW, "sample.jsonl.gz"))]
+    man_path = os.path.join(RAW, "manifest.jsonl.gz")
     wf_path = os.path.join(RAW, "cache_workflows.jsonl.gz")
     done = set()
     if os.path.exists(man_path):
-        done = {json.loads(l)["repo"] for l in open(man_path)}
+        done = {json.loads(l)["repo"] for l in zopen(man_path)}
     todo = [r for r in rows if r["repo"] not in done]
-    man = open(man_path, "a", newline="\n")
+    man = zopen(man_path, "at")
     wf = gzip.open(wf_path, "at", newline="\n")
     B = 20
     for i in range(0, len(todo), B):

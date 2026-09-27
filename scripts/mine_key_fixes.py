@@ -14,7 +14,7 @@ each key change:
   other             anything else (renames, lockfile changes, restructuring)
 
   python scripts/mine_key_fixes.py fetch    (network; GitHub REST)
-     -> data/raw/key_changes.jsonl
+     -> data/raw/key_changes.jsonl.gz
   python scripts/mine_key_fixes.py table    (offline)
      -> results/rq3_key_changes.csv, results/rq3_summary.json
 """
@@ -37,6 +37,14 @@ RES = os.path.join(ROOT, "results")
 MAX_COMMITS = 40
 RANK = {"none": 0, "version_file": 1, "minor": 1, "full": 2}
 KEY_LINE = re.compile(r"^\s*key:\s*(.+?)\s*$")
+
+
+def zopen(path, mode="rt"):
+    """Open a .gz file as text, or a plain file; raw data is stored gzipped."""
+    import gzip
+    if str(path).endswith(".gz"):
+        return gzip.open(path, mode, encoding="utf-8", newline="\n" if mode[0] in "wa" else None)
+    return open(path, mode.replace("t", ""), encoding="utf-8")
 
 
 def _signal(key):
@@ -84,11 +92,11 @@ def fetch():
     from fetch_sample import _req  # noqa: E402
     steps = list(csv.DictReader(open(os.path.join(RES, "cache_steps.csv"), encoding="utf-8")))
     targets = sorted({(s["repo"], s["file"]) for s in steps if s["path_kind"] == "built_env"})
-    out = os.path.join(RAW, "key_changes.jsonl")
+    out = os.path.join(RAW, "key_changes.jsonl.gz")
     done = set()
     if os.path.exists(out):
-        done = {(json.loads(l)["repo"], json.loads(l)["file"]) for l in open(out)}
-    with open(out, "a", newline="\n") as f:
+        done = {(json.loads(l)["repo"], json.loads(l)["file"]) for l in zopen(out)}
+    with zopen(out, "at") as f:
         for n, (repo, wf) in enumerate(targets):
             if (repo, wf) in done:
                 continue
@@ -115,7 +123,7 @@ def table():
     rows = []
     files = 0
     seen = set()
-    for line in open(os.path.join(RAW, "key_changes.jsonl")):
+    for line in zopen(os.path.join(RAW, "key_changes.jsonl.gz")):
         r = json.loads(line)
         files += 1
         for c in r["changes"]:
@@ -142,6 +150,7 @@ def table():
                "repos_with_manual_bust": len({r["repo"] for r in rows if r["kind"] == "manual_bust"}),
                "repos_with_version_literal": len({r["repo"] for r in rows if r["kind"] == "version_literal"}),
                "repos_with_any_key_change": len({r["repo"] for r in rows}),
+               "commits_with_any_key_change": len({(r["repo"], r["sha"]) for r in rows}),
                "repos_with_increment_comment": len({r["repo"] for r in rows if r["kind"] == "manual_bust"
                                                     and "increment to reset cache" in r["new_key"]}),
                **{f"commits_{k}": len({(r["repo"], r["sha"]) for r in rows if r["kind"] == k})

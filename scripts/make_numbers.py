@@ -49,18 +49,55 @@ def numbers(tag):
            r"\else\textbf{\textcolor{red}{??\detokenize{#1}}}\fi}",
            r"\newcommand{\repourl}{\url{%s}}" % REPO_URL,
            r"\newcommand{\repotag}{%s}" % tag]
+    index = []   # rows for NUMBERS.csv
     for prefix, rel in SOURCES:
         path = os.path.join(ROOT, rel)
         if not os.path.exists(path):
             continue
-        lines = open(path, encoding="utf-8").read().splitlines()
-        data = json.load(open(path, encoding="utf-8"))
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
         for k, v in data.items():
             ln = next((i + 1 for i, l in enumerate(lines) if l.strip().startswith(f'"{k}"')), None)
             name = f"{prefix}.{k}"
             out.append(r"\expandafter\def\csname ck@%s\endcsname{%s}" % (name, link(tag, rel, ln, fmt(v))))
+            index.append({"number": name, "value": v, "kind": "result", "source": f"{rel}#L{ln}"})
     with open(os.path.join(PAPER, "numbers.tex"), "w", newline="\n", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")
+    write_index(index)
+
+
+# Numbers the paper states that are study-design choices, not results. Each
+# points at the line of code that sets it.
+DESIGN = [
+    ("search_results_kept_per_query", 300, "scripts/fetch_sample.py", "PAGES_PER_QUERY = 3"),
+    ("sample_size_per_star_group", 1000, "scripts/fetch_sample.py", "PER_STRATUM = 1000"),
+    ("star_groups", 4, "scripts/fetch_sample.py", "STRATA = ["),
+    ("history_commits_read_per_file", 40, "scripts/mine_key_fixes.py", "MAX_COMMITS = 40"),
+    ("timing_runs_per_cell", 5, ".github/workflows/bench.yml", "rep: [1, 2, 3, 4, 5]"),
+    ("labels_per_round", 100, "scripts/validate_classifier.py", "min(60, len(built))"),
+    ("experiment_conditions", 5, ".github/workflows/harm.yml", "condition: [C0, C1, E1, E2, E3]"),
+]
+
+
+def write_index(index):
+    """NUMBERS.csv: every number in the paper, its value and the file and line
+    it comes from. Results come from results/; design choices from the code."""
+    import csv
+    rows = list(index)
+    for name, value, rel, needle in DESIGN:
+        with open(os.path.join(ROOT, rel), encoding="utf-8") as f:
+            ln = next(i + 1 for i, l in enumerate(f) if needle in l)
+        rows.append({"number": f"design.{name}", "value": value, "kind": "design choice", "source": f"{rel}#L{ln}"})
+    with open(os.path.join(ROOT, "bench", "requirements.txt"), encoding="utf-8") as f:
+        n_pkgs = sum(1 for l in f if l.strip())
+    rows.append({"number": "design.timing_packages", "value": n_pkgs, "kind": "design choice",
+                 "source": "bench/requirements.txt (one package per line)"})
+    with open(os.path.join(ROOT, "NUMBERS.csv"), "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["number", "value", "kind", "source"], lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
 
 
 def csv_table(tag, rel, cols, headers, out_name, where=None, align=None):
@@ -98,14 +135,13 @@ def main():
     os.makedirs(PAPER, exist_ok=True)
     numbers(tag)
     csv_table(tag, "results/table1_sample.csv",
-              ["stars", "sampled", "retrieved", "with_workflows", "with_actions_cache",
+              ["stars", "sampled", "with_workflows", "with_actions_cache",
                "caching_built_python_env", "pct_of_workflow_repos_caching_built_env"],
-              ["Stars", "Sampled", "Retrieved", "Workflows", "Any cache", "Built env", r"\% of wf."],
+              ["Stars", "Sampled", "Workflows", "Any cache", "Built env", r"\% of wf."],
               "table1.tex")
     csv_table(tag, "results/table2_key_composition.csv",
-              ["verdict", "steps", "pct_steps", "with_skip_on_hit", "with_deps_hash", "with_os_signal",
-               "restore_keys_drop_interpreter"],
-              ["Key verdict", "Steps", r"\%", "Skip on hit", "Deps hashed", "OS in key", "Unsafe fallback"],
+              ["verdict", "steps", "pct_steps", "with_skip_on_hit", "with_deps_hash", "with_os_signal"],
+              ["Key verdict", "Steps", r"\%", "Skip on hit", "Deps hashed", "OS in key"],
               "table2.tex")
     csv_table(tag, "results/table4_bench.csv",
               ["tool", "mode", "median_s", "min_s", "max_s"],

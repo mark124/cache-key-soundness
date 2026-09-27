@@ -19,12 +19,26 @@ from collections import Counter, defaultdict
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from cachekeys.analyze import analyze_workflow  # noqa: E402
 
+import re  # noqa: E402
+
 ROOT = os.path.join(os.path.dirname(__file__), "..")
+# a CPU-architecture signal in a key or cached path. pythonLocation counts:
+# on hosted runners it ends in /x64 or /arm64.
+ARCH = re.compile(r"runner\.arch|matrix\.[\w-]*arch|\bx64\b|\barm64\b|aarch64|x86_64|pythonLocation|python-path",
+                  re.I)
 RAW = os.path.join(ROOT, "data", "raw")
 RES = os.path.join(ROOT, "results")
 STRATA = ["s1", "s2", "s3", "s4"]
 STRATUM_LABEL = {"s1": "10-99", "s2": "100-999", "s3": "1,000-9,999", "s4": "10,000+"}
 VERDICTS = ["sound", "minor_only", "no_interpreter", "version_file"]
+
+
+def zopen(path, mode="rt"):
+    """Open a .gz file as text, or a plain file; raw data is stored gzipped."""
+    import gzip
+    if str(path).endswith(".gz"):
+        return gzip.open(path, mode, encoding="utf-8", newline="\n" if mode[0] in "wa" else None)
+    return open(path, mode.replace("t", ""), encoding="utf-8")
 
 
 def pct(a, b):
@@ -41,7 +55,7 @@ def write_csv(path, rows, fields):
 
 def main():
     os.makedirs(RES, exist_ok=True)
-    manifest = [json.loads(l) for l in open(os.path.join(RAW, "manifest.jsonl"))]
+    manifest = [json.loads(l) for l in zopen(os.path.join(RAW, "manifest.jsonl.gz"))]
     by_repo = {m["repo"]: m for m in manifest}
 
     steps = []
@@ -139,6 +153,19 @@ def main():
         "repos_exposed": sum(1 for r in repo_rows if r["exposed"]),
         "repos_exposed_pct_of_built_env_repos": pct(sum(1 for r in repo_rows if r["exposed"]), len(repo_rows)),
         "built_with_deps_hash": sum(1 for s in built if s["deps_hashed"]),
+        "built_hashing_lock_file": sum(1 for s in built if re.search(r"hashFiles\([^)]*\.lock", s["key"])),
+        # CPU architecture: neither setup-python's version output nor runner.os
+        # carries it, and the cache version does not include it
+        "sound_without_arch": sum(1 for s in built if s["verdict"] == "sound"
+                                  and not ARCH.search(s["key"] + " " + " ".join(s["paths"].split(" | ")))),
+        "sound_with_deps_and_os": sum(1 for s in built if s["verdict"] == "sound"
+                                      and s["deps_hashed"] and s["os_signal"]),
+        "repo_weighted_incomplete_pct": round(100 * sum(
+            sum(1 for s in built if s["repo"] == r and s["verdict"] in ("minor_only", "no_interpreter"))
+            / sum(1 for s in built if s["repo"] == r) for r in {s["repo"] for s in built})
+            / len({s["repo"] for s in built}), 1),
+        "top4_repos_steps": sum(sorted(Counter(s["repo"] for s in built).values(), reverse=True)[:4]),
+        "repos_retrieved": t1[-1]["retrieved"],
         "minor_only_steps": sum(1 for s in built if s["verdict"] == "minor_only"),
         "no_interpreter_steps": sum(1 for s in built if s["verdict"] == "no_interpreter"),
         "sound_steps": sum(1 for s in built if s["verdict"] == "sound"),
@@ -149,8 +176,8 @@ def main():
         "pct_workflow_repos_caching_built_env": t1[-1]["pct_of_workflow_repos_caching_built_env"],
         "pct_caching_built_env_min_stratum": min(r["pct_of_workflow_repos_caching_built_env"] for r in t1[:-1]),
         "pct_caching_built_env_max_stratum": max(r["pct_of_workflow_repos_caching_built_env"] for r in t1[:-1]),
-        "frame_size": sum(1 for _ in open(os.path.join(RAW, "frame.jsonl"))),
-        "frame_s4": sum(1 for l in open(os.path.join(RAW, "frame.jsonl")) if json.loads(l)["stratum"] == "s4"),
+        "frame_size": sum(1 for _ in zopen(os.path.join(RAW, "frame.jsonl.gz"))),
+        "frame_s4": sum(1 for l in zopen(os.path.join(RAW, "frame.jsonl.gz")) if json.loads(l)["stratum"] == "s4"),
         "repos_any_unsound_pct_of_built_env_repos": pct(sum(1 for r in repo_rows if r["any_unsound"]), len(repo_rows)),
         "sound_steps_with_restore_key_fallback_hazard": sum(
             1 for s in built if s["verdict"] == "sound" and s["restore_key_drops_interp"]),
