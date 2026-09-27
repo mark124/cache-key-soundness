@@ -8,6 +8,8 @@
 #                       key hits (positive control)
 #   E1  minor-only key  seeded on an older 3.12 patch, restored on current 3.12
 #   E2  no version      seeded on 3.11, restored on a 3.13 leg
+#   E4  no version in the key, exact hit, and the install step runs anyway,
+#       with plain commands that do not name the interpreter (gitman's case)
 #   E3  sound key, but a version-less restore-keys prefix: the exact key
 #       misses, the prefix restores the 3.11 environment, and installation
 #       runs on top of it
@@ -28,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition: [C0, C1, E1, E2, E3]
+        condition: [C0, C1, E1, E2, E3, E4]
         tool: [pip, poetry, uv]
         include:
           - {condition: C0, seed_py: "3.12.10", keyver: full}
@@ -36,6 +38,7 @@ jobs:
           - {condition: E1, seed_py: "3.12.10", keyver: "3.12"}
           - {condition: E2, seed_py: "3.11", keyver: none}
           - {condition: E3, seed_py: "3.11", keyver: full}
+          - {condition: E4, seed_py: "3.11", keyver: none}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
@@ -64,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition: [C0, C1, E1, E2, E3]
+        condition: [C0, C1, E1, E2, E3, E4]
         tool: [pip, poetry, uv]
         include:
           - {condition: C0, leg_py: "3.12", keyver: full}
@@ -72,6 +75,7 @@ jobs:
           - {condition: E1, leg_py: "3.12", keyver: "3.12"}
           - {condition: E2, leg_py: "3.13", keyver: none}
           - {condition: E3, leg_py: "3.13", keyver: full}
+          - {condition: E4, leg_py: "3.13", keyver: none}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
@@ -92,8 +96,8 @@ jobs:
           key: ${{ steps.key.outputs.key }}
           restore-keys: ${{ matrix.condition == 'E3' && format('exp-{0}-{1}-E3-{2}-', github.run_id, github.run_attempt, matrix.tool) || '' }}
       # The pattern under study: skip installation whenever the key matched.
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: bash scripts/build_env.sh "${{ matrix.tool }}" "${{ steps.py.outputs.python-path }}" 2>&1 | tee install.log
+      - if: steps.cache.outputs.cache-hit != 'true' || matrix.condition == 'E4'
+        run: bash scripts/build_env.sh "${{ matrix.tool }}" "${{ steps.py.outputs.python-path }}" ${{ matrix.condition == 'E4' && 'plain' || '' }} 2>&1 | tee install.log
       - name: test (outcome recorded, never fails the job)
         env:
           CONDITION: ${{ matrix.condition }}
