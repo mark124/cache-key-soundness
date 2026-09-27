@@ -1,0 +1,46 @@
+# Build the arXiv source bundle: the paper's .tex files plus the compiled .bbl
+# (arXiv does not run BibTeX reliably), then compile the bundle on its own to
+# prove it builds without refs.bib, and check every font is embedded.
+name: arxiv
+on:
+  push:
+    paths: ["paper/**", ".github/workflows/arxiv.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - name: Compile the paper to get main.bbl
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
+        with:
+          root_file: main.tex
+          working_directory: paper
+          latexmk_use_lualatex: false
+      - name: Assemble the bundle
+        run: |
+          mkdir arxiv
+          { echo '\pdfoutput=1'; cat paper/main.tex; } > arxiv/main.tex
+          cp paper/main.bbl paper/numbers.tex paper/table1.tex paper/table2.tex paper/table3.tex paper/table4.tex arxiv/
+          ls -l arxiv
+      - name: Compile the bundle alone (no refs.bib, no BibTeX)
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
+        with:
+          root_file: main.tex
+          working_directory: arxiv
+          compiler: pdflatex
+          args: -interaction=nonstopmode -halt-on-error
+          extra_system_packages: poppler-utils
+          post_compile: "pdflatex -interaction=nonstopmode -halt-on-error main.tex && pdflatex -interaction=nonstopmode -halt-on-error main.tex && ! grep -E 'Citation .* undefined|Reference .* undefined' main.log && pdffonts main.pdf | tee fonts.txt && ! awk 'NR>2 && ($(NF-4)!=\"yes\" || $0 ~ / Type 3 /)' fonts.txt | grep ."
+      - name: Pack
+        run: tar czf arxiv-source.tar.gz -C arxiv main.tex main.bbl numbers.tex table1.tex table2.tex table3.tex table4.tex && tar tzf arxiv-source.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: arxiv
+          path: |
+            arxiv-source.tar.gz
+            arxiv/main.pdf
+            arxiv/fonts.txt
