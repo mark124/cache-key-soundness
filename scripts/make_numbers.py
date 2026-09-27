@@ -78,7 +78,7 @@ DESIGN = [
     ("history_commits_read_per_file", 40, "scripts/mine_key_fixes.py", "MAX_COMMITS = 40"),
     ("timing_runs_per_cell", 5, ".github/workflows/bench.yml", "rep: [1, 2, 3, 4, 5]"),
     ("labels_per_round", 100, "scripts/validate_classifier.py", "min(60, len(built))"),
-    ("experiment_conditions", 5, ".github/workflows/harm.yml", "condition: [C0, C1, E1, E2, E3]"),
+    ("experiment_conditions", 6, ".github/workflows/harm.yml", "condition: [C0, C1, E1, E2, E3, E4]"),
 ]
 
 

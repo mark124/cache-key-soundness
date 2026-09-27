@@ -1,12 +1,12 @@
 {
   "runs": 3,
-  "outcomes": 45,
+  "outcomes": 54,
   "n_correct_miss": 9,
   "n_correct_hit": 9,
   "n_rebuilt_after_prefix": 6,
   "n_self_healed": 3,
   "n_loud_failure": 6,
-  "n_silent_wrong": 12,
+  "n_silent_wrong": 21,
   "pairs_inconsistent_across_runs": 0,
   "C0_pip_outcome": "correct_miss",
   "C0_pip_ran_on": "3.12.14",
@@ -57,5 +57,15 @@
   "E3_poetry_asked": "3.13.15",
   "E3_uv_outcome": "rebuilt_after_prefix",
   "E3_uv_ran_on": "3.13.15",
-  "E3_uv_asked": "3.13.15"
+  "E3_uv_asked": "3.13.15",
+  "E4_pip_outcome": "silent_wrong",
+  "E4_pip_ran_on": "3.11.16",
+  "E4_pip_asked": "3.13.15",
+  "E4_seed_python": "3.11.16",
+  "E4_poetry_outcome": "silent_wrong",
+  "E4_poetry_ran_on": "3.11.16",
+  "E4_poetry_asked": "3.13.15",
+  "E4_uv_outcome": "silent_wrong",
+  "E4_uv_ran_on": "3.11.16",
+  "E4_uv_asked": "3.13.15"
 }

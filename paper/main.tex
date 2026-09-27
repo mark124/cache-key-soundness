@@ -35,10 +35,10 @@ environment, \ck{h.unsound_steps} (\ck{h.unsound_pct_of_built}\%) use a key
 without the exact Python version, in \ck{h.repos_any_unsound} of the
 \ck{h.repos_caching_built_env} repositories that cache an environment at all.
 \ck{h.unsound_with_skip_or_restore_keys} of those steps also skip installation
-on a hit or fall back to a prefix key, the two routes by which our experiment
-produced harm. In that controlled experiment on GitHub's runners, a key with
+on a hit or fall back to a prefix key, although our experiment shows neither is
+needed for harm. In that controlled experiment on GitHub's runners, a key with
 no Python version made a job set up for Python~3.13 run its tests on 3.11 and
-pass, under pip, Poetry and uv. With only the minor version in the key, a
+pass, under pip, Poetry and uv, whether or not the install step ran. With only the minor version in the key, a
 patch release broke the build under pip and Poetry, while uv rebuilt the
 environment. The silent failure also occurs in practice: in one public
 project's CI, \ck{w.wild_jobs_wrong_python} of \ck{w.wild_jobs_in_live_run} matrix jobs ran their tests
@@ -208,7 +208,7 @@ PyYAML, which contains compiled code, and records which Python ran it. We test
 pip with \texttt{venv}, Poetry~2.5.1 with the environment inside the project,
 and uv~0.12.19. Each uses its standard commands (\texttt{python -m venv} and
 \texttt{pip install}, \texttt{poetry install}, \texttt{uv sync}). There are
-five conditions:
+six conditions:
 \begin{description}
 \item[C0] a sound key, with the environment built on 3.12.10 and restored on
   the image's 3.12, so the exact key misses. This is the negative control.
@@ -221,9 +221,13 @@ five conditions:
   restored in a job set up for 3.13.
 \item[E3] a sound key, plus a restore key without the version. The exact key
   misses, the prefix restores the 3.11 environment, and the install step runs.
+\item[E4] no version in the key, as in E2, but the install step runs even on a
+  hit, using plain commands that do not name the interpreter
+  (\texttt{poetry install} without \texttt{poetry env use}, \texttt{uv sync}
+  without \texttt{-{}-python}).
 \end{description}
-As in the action's documentation, the install step is skipped when
-\texttt{cache-hit} is \texttt{'true'}. Each outcome file also records the
+Except in E4, and as in the action's documentation, the install step is
+skipped when \texttt{cache-hit} is \texttt{'true'}. Each outcome file also records the
 install step's own output. Each result falls into one of four groups:
 \emph{correct} (tests ran on the Python the job asked for, after a hit or a
 miss),
@@ -287,14 +291,17 @@ incomplete keys is \ck{h.repo_weighted_incomplete_pct}\%, so the four
 repositories with the most steps (\ck{h.top4_repos_steps} steps between them)
 do not drive the result.
 
-How many of these keys can actually cause the harm RQ2 shows? The
-experiment found two routes: restoring an environment and then skipping the
-install step, and a fallback key that restores an environment even when the
-exact key misses. \ck{h.unsound_with_skip_or_restore_keys} of the
+How many of these keys can actually cause the harm RQ2 shows? RQ2 points to
+one condition: an environment built for one Python is restored in a job for
+another, and the installer does not check which interpreter it was built for.
+Skipping the install step on a hit is one way to get there, and a fallback key
+is another. \ck{h.unsound_with_skip_or_restore_keys} of the
 \ck{h.unsound_steps} incomplete keys use at least one of them, and
 \ck{h.repos_exposed} repositories (\ck{h.repos_exposed_pct_of_built_env_repos}\%)
-have an incomplete key that skips the install step. The silent-wrong result
-also needs the same key to be used by jobs on different Python versions. We
+have an incomplete key that skips the install step. Neither is necessary,
+though: in E4 the install step ran and every tool still kept the wrong
+environment. The silent-wrong result does need the same key to be used by
+jobs on different Python versions. We
 can see one way that happens in a single snapshot: one key shared across a
 matrix of Python versions, with no other matrix variable in the key to tell
 them apart. That occurs in only \ck{h.shared_across_python_steps} steps, in
@@ -314,8 +321,12 @@ was restored into all \ck{w.wild_jobs_in_live_run} matrix jobs. The jobs set
 up Python 3.10, 3.11, 3.13 and 3.14, but in each of those
 \ck{w.wild_jobs_wrong_python} jobs the tests ran on
 \ck{w.wild_tests_ran_on}, and all of them passed. The install step ran, and
-Poetry reported ``No dependencies to install or update''. This is the E2
-failure in a real project, with the install step not even skipped.
+Poetry reported ``No dependencies to install or update''. This is the E4
+setup in a real project.\footnote{gitman's own Makefile adds a second layer:
+its install rule is keyed on a stamp file inside the cached
+\texttt{.venv} (\texttt{.venv/.poetry-<checksum>}), and it reran
+\texttt{poetry install} only because checkout gives \texttt{poetry.lock} a new
+timestamp.}
 
 The other way a key ends up shared across Python versions, a project moving to a new Python
 version without changing its lock file, cannot be seen in one snapshot, so the
@@ -382,10 +393,17 @@ existing environment did not replace its interpreter link, and
 install output is in each E3 outcome file). Poetry and uv
 rebuilt the environment during the install step. For Poetry that depends on
 how it is called: our install step runs \texttt{poetry env use} with the job's
-interpreter first. gitman's plain \texttt{poetry install} kept the restored
-environment (\S\ref{sec:rq1}). So skipping the install step
-is not the only way an incomplete key does harm. With pip, restoring the
-environment at all is enough.
+interpreter first.
+
+\emph{With no version in the key, running the install step did not help
+(E4).} All three tools kept the 3.11 environment and tested on 3.11 in a job
+set up for 3.13. pip reported every requirement as already satisfied in
+\texttt{.venv/lib/python3.11}, Poetry reported ``No dependencies to install or
+update'', and uv resolved the project and kept the environment, since it still
+met \texttt{requires-python}. So skipping the install step is not what causes
+the harm. Restoring an environment built for another Python is enough, unless
+the install step names the interpreter, as our E3 commands for Poetry and uv
+did.
 
 \subsection{RQ3: Do maintainers run into it?}
 \label{sec:rq3}

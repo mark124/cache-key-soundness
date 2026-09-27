@@ -39,13 +39,13 @@ h.frame_s4,825,result,results/headline.json#L38
 h.repos_any_unsound_pct_of_built_env_repos,66.7,result,results/headline.json#L39
 h.sound_steps_with_restore_key_fallback_hazard,0,result,results/headline.json#L40
 t3.runs,3,result,results/table3_summary.json#L2
-t3.outcomes,45,result,results/table3_summary.json#L3
+t3.outcomes,54,result,results/table3_summary.json#L3
 t3.n_correct_miss,9,result,results/table3_summary.json#L4
 t3.n_correct_hit,9,result,results/table3_summary.json#L5
 t3.n_rebuilt_after_prefix,6,result,results/table3_summary.json#L6
 t3.n_self_healed,3,result,results/table3_summary.json#L7
 t3.n_loud_failure,6,result,results/table3_summary.json#L8
-t3.n_silent_wrong,12,result,results/table3_summary.json#L9
+t3.n_silent_wrong,21,result,results/table3_summary.json#L9
 t3.pairs_inconsistent_across_runs,0,result,results/table3_summary.json#L10
 t3.C0_pip_outcome,correct_miss,result,results/table3_summary.json#L11
 t3.C0_pip_ran_on,3.12.14,result,results/table3_summary.json#L12
@@ -97,6 +97,16 @@ t3.E3_poetry_asked,3.13.15,result,results/table3_summary.json#L57
 t3.E3_uv_outcome,rebuilt_after_prefix,result,results/table3_summary.json#L58
 t3.E3_uv_ran_on,3.13.15,result,results/table3_summary.json#L59
 t3.E3_uv_asked,3.13.15,result,results/table3_summary.json#L60
+t3.E4_pip_outcome,silent_wrong,result,results/table3_summary.json#L61
+t3.E4_pip_ran_on,3.11.16,result,results/table3_summary.json#L62
+t3.E4_pip_asked,3.13.15,result,results/table3_summary.json#L63
+t3.E4_seed_python,3.11.16,result,results/table3_summary.json#L64
+t3.E4_poetry_outcome,silent_wrong,result,results/table3_summary.json#L65
+t3.E4_poetry_ran_on,3.11.16,result,results/table3_summary.json#L66
+t3.E4_poetry_asked,3.13.15,result,results/table3_summary.json#L67
+t3.E4_uv_outcome,silent_wrong,result,results/table3_summary.json#L68
+t3.E4_uv_ran_on,3.11.16,result,results/table3_summary.json#L69
+t3.E4_uv_asked,3.13.15,result,results/table3_summary.json#L70
 rq3.workflow_files_scanned,182,result,results/rq3_summary.json#L2
 rq3.key_changes,145,result,results/rq3_summary.json#L3
 rq3.files_with_any_key_change,67,result,results/rq3_summary.json#L4
@@ -164,5 +174,5 @@ design.star_groups,4,design choice,scripts/fetch_sample.py#L34
 design.history_commits_read_per_file,40,design choice,scripts/mine_key_fixes.py#L37
 design.timing_runs_per_cell,5,design choice,.github/workflows/bench.yml#L74
 design.labels_per_round,100,design choice,scripts/validate_classifier.py#L45
-design.experiment_conditions,5,design choice,.github/workflows/harm.yml#L31
+design.experiment_conditions,6,design choice,.github/workflows/harm.yml#L33
 design.timing_packages,12,design choice,bench/requirements.txt (one package per line)
