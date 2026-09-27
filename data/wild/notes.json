@@ -6,5 +6,37 @@
   "tmbo/questionary": {
     "status": "undetermined",
     "reason": "The most recent successful run checked (32128983553, 2026-08-18) shows no actions/cache restore or save lines for the test jobs; the workflow appears to have changed from the sampled commit, so its logs cannot settle whether the sampled cache is live."
+  },
+  "jacebrowning/gitman (how the shared cache was created)": {
+    "status": "evidence",
+    "reason": "Cache entry 7937979754 (key Linux-poetry-d171a09e..., ref refs/heads/main) was created 2026-09-21T15:06:40Z by run 35616499253. In that run all five build jobs logged 'Cache not found for input keys'; build (3.12) finished first and logged 'Cache saved with key: Linux-poetry-d171a...'; build (3.10), (3.11), (3.13) and (3.14) logged 'Failed to save: Unable to reserve cache'. So the cached .venv is built by whichever matrix job finishes first, and later runs restore it into every job.",
+    "seeding_run": "https://github.com/jacebrowning/gitman/actions/runs/35616499253",
+    "jobs": [
+      {
+        "completed_at": "2026-09-21T15:07:29Z",
+        "id": 106388444669,
+        "name": "build (3.10)"
+      },
+      {
+        "completed_at": "2026-09-21T15:07:31Z",
+        "id": 106388444930,
+        "name": "build (3.13)"
+      },
+      {
+        "completed_at": "2026-09-21T15:06:42Z",
+        "id": 106388444939,
+        "name": "build (3.12)"
+      },
+      {
+        "completed_at": "2026-09-21T15:06:57Z",
+        "id": 106388444963,
+        "name": "build (3.14)"
+      },
+      {
+        "completed_at": "2026-09-21T15:06:51Z",
+        "id": 106388445102,
+        "name": "build (3.11)"
+      }
+    ]
   }
 }

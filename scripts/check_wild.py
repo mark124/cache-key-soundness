@@ -33,7 +33,8 @@ RUNS = [
     ("nextcord/nextcord", "lint.yml", "pyright", "35673493319"),
 ]
 PATTERNS = {
-    "setup": re.compile(r"Successfully set up CPython \(([\d.]+)\)|^\s*Python (\d+\.\d+\.\d+)\s*$"),
+    # setup-python v3+ prints "set up"; v2 printed "setup"
+    "setup": re.compile(r"Successfully set ?up CPython \(([\d.]+)\)|^\s*Python (\d+\.\d+\.\d+)\s*$"),
     "cache_restored": re.compile(r"Cache restored from key: (.+)"),
     "cache_not_found": re.compile(r"Cache not found for input keys: (.+)"),
     "path_missing": re.compile(r"Path Validation Error"),
@@ -97,7 +98,8 @@ def table():
     live = {r["repo"] for r in rows if r["cache_restored"]}
     wrong = [r for r in rows if r["wrong_python"]]
     summary = {
-        "shared_cases_checked": len(notes) + len({r["repo"] for r in rows}),
+        "shared_cases_checked": sum(1 for n in notes.values() if n["status"] in ("inert", "undetermined"))
+                                + len({r["repo"] for r in rows}),
         "live_shared_caches": len(live),
         "inert_shared_caches": sum(1 for n in notes.values() if n["status"] == "inert")
                                + len({r["repo"] for r in rows if r["cache_path_missing"] and not r["cache_restored"]}),

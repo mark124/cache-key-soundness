@@ -1,6 +1,6 @@
 verdict,steps,pct_steps,with_skip_on_hit,with_deps_hash,with_os_signal,restore_keys_drop_interpreter
-sound,88,35.5,55,77,70,0
-minor_only,67,27.0,17,66,56,0
-no_interpreter,77,31.0,10,65,51,0
+sound,86,34.7,54,76,68,0
+minor_only,68,27.4,18,67,57,0
+no_interpreter,78,31.5,10,65,52,0
 version_file,16,6.5,0,16,16,0
 total,248,100.0,82,224,193,0

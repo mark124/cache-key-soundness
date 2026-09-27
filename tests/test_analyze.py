@@ -234,3 +234,57 @@ def test_python_tool_folders_under_local_and_prefixed_venvs():
           key: k-${{{{ hashFiles('a') }}}}
 """)
         assert c.path_kind == "built_env", path
+
+
+BARE = """
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+{steps}
+"""
+
+
+def test_step_without_id_uses_the_fallback_literal():
+    # Skyvern pattern: setup-python has no id, so steps.setup-python.* is empty
+    # and the `|| '3.11'` fallback is what the key really contains
+    c = analyze_workflow(BARE.format(steps="""      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - id: c
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ steps.setup-python.outputs.python-version || '3.11' }}-${{ hashFiles('x') }}
+      - if: steps.c.outputs.cache-hit != 'true'
+        run: pip install -r x"""))[0]
+    assert c.verdict == "minor_only" and c.skip_on_hit
+
+
+def test_step_after_the_cache_step_is_empty():
+    # protobuf pattern: the cache step runs before setup-python
+    c = analyze_workflow(BARE.format(steps="""      - uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ runner.os }}-${{ steps.py.outputs.python-version }}-mkdocs
+      - id: py
+        uses: actions/setup-python@v5
+        with: {python-version: "3.12"}"""))[0]
+    assert c.verdict == "no_interpreter"
+
+
+def test_python_location_without_setup_python_is_empty():
+    c = analyze_workflow(BARE.format(steps="""      - uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ env.pythonLocation }}-${{ hashFiles('x') }}"""))[0]
+    assert c.verdict == "no_interpreter" and not c.has_setup_python
+
+
+def test_the_linters_own_fix_without_setup_python_passes():
+    c = analyze_workflow(BARE.format(steps="""      - run: echo "PYID=$(python -VV | tr -c '[:alnum:].' _)-$(uname -m)" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ env.PYID }}-${{ hashFiles('x') }}"""))[0]
+    assert c.verdict == "sound"

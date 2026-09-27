@@ -122,7 +122,7 @@ def main():
     fields = ["repo", "stratum", "sha", "file", "job", "step_index", "step_id", "uses", "paths",
               "key", "restore_keys", "skip_on_hit", "path_kind", "path_pins_interpreter",
               "interp_signal", "interp_signal_detail", "deps_hashed", "os_signal",
-              "restore_key_drops_interp", "verdict", "shared_across_python", "notes"]
+              "restore_key_drops_interp", "verdict", "has_setup_python", "shared_across_python", "notes"]
     steps.sort(key=lambda r: (r["repo"], r["file"], r["job"], r["step_index"]))
     write_csv(os.path.join(RES, "cache_steps.csv"), steps, fields)
 
@@ -198,6 +198,8 @@ def main():
         "repos_exposed": sum(1 for r in repo_rows if r["exposed"]),
         "repos_exposed_pct_of_built_env_repos": pct(sum(1 for r in repo_rows if r["exposed"]), len(repo_rows)),
         "built_with_deps_hash": sum(1 for s in built if s["deps_hashed"]),
+        # pythonLocation is empty in these jobs, so it cannot be the fix there
+        "built_without_setup_python": sum(1 for s in built if not s["has_setup_python"]),
         "built_hashing_lock_file": sum(1 for s in built if re.search(r"hashFiles\([^)]*\.lock", s["key"])),
         # CPU architecture: neither setup-python's version output nor runner.os
         # carries it, and the cache version does not include it

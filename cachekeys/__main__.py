@@ -10,14 +10,21 @@ import sys
 
 from .analyze import analyze_workflow
 
-ADVICE = {
+PROBLEM = {
     "minor_only": "the key carries only the minor Python version; a patch release changes the "
-                  "interpreter the cached environment links to. Put ${{ env.pythonLocation }} in the "
-                  "key (exact version and CPU architecture).",
+                  "interpreter the cached environment links to.",
     "no_interpreter": "the key carries no Python version; the cached environment can be restored "
-                      "under a different interpreter. Put ${{ env.pythonLocation }} in the key "
-                      "(exact version and CPU architecture).",
+                      "under a different interpreter.",
 }
+FIX_WITH_SETUP = " Put ${{ env.pythonLocation }} in the key (exact version and CPU architecture)."
+# pythonLocation is empty unless setup-python (or setup-pdm) ran earlier in the job
+FIX_WITHOUT_SETUP = (" This job does not run setup-python, so pythonLocation is empty here. Add a step "
+                     "that runs `echo \"PYID=$(python -VV | tr -c '[:alnum:].' _)-$(uname -m)\" >> "
+                     "\"$GITHUB_ENV\"` before the cache step, and put ${{ env.PYID }} in the key.")
+
+
+def advice(c) -> str:
+    return PROBLEM[c.verdict] + (FIX_WITH_SETUP if c.has_setup_python else FIX_WITHOUT_SETUP)
 
 
 def lint(paths: list[str]) -> int:
@@ -29,10 +36,10 @@ def lint(paths: list[str]) -> int:
         with open(f, encoding="utf-8", errors="replace") as fh:
             for c in analyze_workflow(fh.read(), f):
                 where = f"{f}: job '{c.job}', step {c.step_index + 1}"
-                if c.verdict in ADVICE:
+                if c.verdict in PROBLEM:
                     problems += 1
                     sev = "error" if c.skip_on_hit else "warning"
-                    print(f"{where}: {sev}: cached environment {c.paths} — {ADVICE[c.verdict]}"
+                    print(f"{where}: {sev}: cached environment {c.paths} - {advice(c)}"
                           + (" Installation is skipped on a cache hit, so the stale environment "
                              "is used as-is." if c.skip_on_hit else ""))
                 if c.restore_key_drops_interp:

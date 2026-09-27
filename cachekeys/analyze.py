@@ -97,6 +97,7 @@ class CacheStep:
     os_signal: bool = False
     restore_key_drops_interp: bool = False
     verdict: str = ""              # see judge()
+    has_setup_python: bool = False  # an earlier step sets pythonLocation
     notes: list[str] = field(default_factory=list)
 
     def row(self) -> dict:
@@ -217,6 +218,27 @@ def judge(c: CacheStep) -> str:
     return "minor_only" if c.interp_signal == "minor" else "no_interpreter"
 
 
+SETS_PYTHONLOCATION = re.compile(r"^(actions/setup-python|pdm-project/setup-pdm)@", re.I)
+FALLBACK = re.compile(r"\|\|\s*(['\"])(.*?)\1")
+
+
+def _as_evaluated(text: str, prior_ids: set[str], has_python_location: bool) -> str:
+    """Rewrite ${{ }} expressions the way GitHub would evaluate them at the
+    cache step: a reference to a step that does not exist or has not run yet,
+    or to pythonLocation when no earlier step set it, is empty; if the
+    expression has an `|| 'literal'` fallback, that literal is used instead."""
+    def sub(m):
+        inner = m.group(1)
+        dead = [x for x in re.findall(r"steps\.([\w-]+)\.", inner) if x not in prior_ids]
+        if not has_python_location and re.search(r"pythonLocation", inner):
+            dead.append("pythonLocation")
+        if not dead:
+            return m.group(0)
+        fb = FALLBACK.search(inner)
+        return fb.group(2) if fb else ""
+    return EXPR.sub(sub, text)
+
+
 def analyze_workflow(text: str, filename: str = "") -> list[CacheStep]:
     try:
         doc = yaml.safe_load(text)
@@ -254,14 +276,19 @@ def analyze_workflow(text: str, filename: str = "") -> list[CacheStep]:
             step_env = dict(env)
             if isinstance(s.get("env"), dict):
                 step_env.update(s["env"])
-            key = _resolve_env(str(w.get("key", "")), step_env)
+            prior_ids = {str(p["id"]) for p in steps[:i] if isinstance(p, dict) and p.get("id")}
+            has_loc = any(isinstance(p, dict) and SETS_PYTHONLOCATION.match(str(p.get("uses", "")))
+                          for p in steps[:i])
+            key = _as_evaluated(_resolve_env(str(w.get("key", "")), step_env), prior_ids, has_loc)
             # a key computed by an earlier run step: judge the text that
             # computes it, not the opaque reference
             for m in re.finditer(r"steps\.([\w-]+)\.outputs\.[\w-]+", key):
                 if m.group(1) in run_by_id and not FULL_VERSION_EXPR.fullmatch(m.group(0)):
                     key += "  #computed-by: " + _resolve_env(run_by_id[m.group(1)], step_env)
-            rkeys = [_resolve_env(k, step_env) for k in _as_list(w.get("restore-keys"))]
-            paths = [_resolve_env(p, step_env) for p in _as_list(w.get("path"))]
+            rkeys = [_as_evaluated(_resolve_env(k, step_env), prior_ids, has_loc)
+                     for k in _as_list(w.get("restore-keys"))]
+            paths = [_as_evaluated(_resolve_env(p, step_env), prior_ids, has_loc)
+                     for p in _as_list(w.get("path"))]
             sid = s.get("id")
             skip = False
             if sid:
@@ -271,6 +298,7 @@ def analyze_workflow(text: str, filename: str = "") -> list[CacheStep]:
                         skip = True
                         break
             c = CacheStep(filename, str(job_name), i, sid, uses, paths, key, rkeys, skip)
+            c.has_setup_python = has_loc
             c.path_kind, c.path_pins_interpreter = classify_path(paths)
             c.interp_signal, c.interp_signal_detail = interp_signal(key, exported, setup_inputs, matrix)
             # setup-python pinned to one exact patch makes a literal minor exact

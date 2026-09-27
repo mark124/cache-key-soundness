@@ -142,7 +142,15 @@ experiment varies. We call a step \emph{sound} when its key pins the exact
 Python version, and report the other inputs separately. Of the
 \ck{h.sound_steps} sound keys, \ck{h.sound_with_deps_and_os} also hash a
 dependency file and name the operating system, and \ck{h.sound_without_arch}
-carry nothing that identifies the CPU architecture.
+carry nothing that identifies the CPU architecture. The operating system
+release is an input too: \texttt{runner.os} is \texttt{Linux} on both
+\texttt{ubuntu-22.04} and \texttt{ubuntu-24.04}, and \texttt{pythonLocation}
+is the same path on both, so an environment with locally compiled extensions
+can cross an \texttt{ubuntu-latest} migration unnoticed. The runner sets
+\texttt{ImageOS} for this. Two smaller inputs are the install command's
+options, such as extras or dependency groups, which a hash of the lock file
+does not cover, and on self-hosted runners the workspace path, which a
+virtual environment records in its scripts.
 
 Our classifier (\texttt{cachekeys/analyze.py}) first works out what a cache
 step stores. A \emph{built environment} is a virtual environment
@@ -181,7 +189,12 @@ warning otherwise. The fix is one expression in the key:
 hosted runners it holds both the exact version and the architecture, for
 example \texttt{/opt/hostedtoolcache/Python/3.12.14/x64}. setup-python's
 \texttt{python-version} output also pins the version, but not the
-architecture.
+architecture. \texttt{pythonLocation} is only set once setup-python (or
+setup-pdm) has run. In \ck{h.built_without_setup_python} of the
+\ck{h.built_env_steps} built-environment steps, no such step runs before the
+cache step, so there \texttt{pythonLocation} is empty and would reproduce the
+problem. The linter checks for this and suggests writing the interpreter's
+version and architecture to an environment variable instead.
 
 \section{Study Design}
 
@@ -322,7 +335,11 @@ up Python 3.10, 3.11, 3.13 and 3.14, but in each of those
 \ck{w.wild_jobs_wrong_python} jobs the tests ran on
 \ck{w.wild_tests_ran_on}, and all of them passed. The install step ran, and
 Poetry reported ``No dependencies to install or update''. This is the E4
-setup in a real project.\footnote{gitman's own Makefile adds a second layer:
+setup in a real project. The cache itself was created three days earlier by a
+race: in \href{https://github.com/jacebrowning/gitman/actions/runs/35616499253}{run
+35616499253}, all five jobs missed the cache, the 3.12 job finished first and
+saved it, and the other four failed to reserve the key. Whichever job finishes
+first decides which Python every later run tests on.\footnote{gitman's own Makefile adds a second layer:
 its install rule is keyed on a stamp file inside the cached
 \texttt{.venv} (\texttt{.venv/.poetry-<checksum>}), and it reran
 \texttt{poetry install} only because checkout gives \texttt{poetry.lock} a new
@@ -513,8 +530,12 @@ classifier error: a rule counts \texttt{\textasciitilde/.local/bin} as a Python
 environment, and one step cached a non-Python program there. In
 \ck{t5.disagreements_undecidable} the workflow file alone cannot settle it.
 Each call, with the rule it rests on, is in
-\texttt{data/validation/adjudication\_round2.csv}. We did not change the
-classifier after seeing the round 2 labels. Two caveats: the labels come from
+\texttt{data/validation/adjudication\_round2.csv}. The labels themselves led
+to no change in the classifier. One later change came from an outside review:
+a key that refers to a step which does not exist, or runs after the cache
+step, is now judged by what GitHub evaluates it to. That moved two steps
+from sound to incomplete; neither was in a labelled sample, and the
+agreement figures are unchanged. Two caveats: the labels come from
 one person, the author, and the disagreements were checked by the tool's
 author, so neither step is independent. A second, independent labeller would
 make this check stronger.

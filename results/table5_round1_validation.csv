@@ -1,3 +1,3 @@
 field,labelled,agree,agreement_pct,disagreements
 path_kind,100,67,67.0,"{""label download_store / tool built_env"": 11, ""label download_store / tool other"": 8, ""label other / tool built_env"": 12, ""label other / tool download_store"": 2}"
-verdict,100,72,72.0,"{""label minor_only / tool sound"": 1, ""label no_interpreter / tool minor_only"": 1, ""label not_applicable / tool minor_only"": 7, ""label not_applicable / tool no_interpreter"": 11, ""label not_applicable / tool sound"": 5, ""label sound / tool minor_only"": 1, ""label version_file / tool sound"": 2}"
+verdict,100,71,71.0,"{""label minor_only / tool sound"": 1, ""label no_interpreter / tool minor_only"": 1, ""label not_applicable / tool minor_only"": 7, ""label not_applicable / tool no_interpreter"": 11, ""label not_applicable / tool sound"": 5, ""label sound / tool minor_only"": 2, ""label version_file / tool sound"": 2}"

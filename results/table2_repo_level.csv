@@ -14,7 +14,7 @@ PaddlePaddle/PaddleOCR,s4,1,True,False,False
 RasaHQ/rasa,s4,15,True,True,False
 Sceptre/sceptre,s3,1,True,False,False
 Significant-Gravitas/AutoGPT,s4,14,True,False,False
-Skyvern-AI/skyvern,s4,1,False,False,False
+Skyvern-AI/skyvern,s4,1,True,True,False
 Snowflake-Labs/pg_lake,s3,1,True,True,False
 TheNewThinkTank/fitness-tracker,s1,1,True,False,False
 ai2cm/ace,s2,5,False,False,False
@@ -38,7 +38,7 @@ danielfm/pybreaker,s2,1,True,False,False
 davidfstr/Crystal-Web-Archiver,s1,2,False,False,False
 dominikszopa/fundraising-website,s1,1,True,True,False
 eidorb/ubank,s1,2,True,False,False
-eigenein/protobuf,s2,1,False,False,False
+eigenein/protobuf,s2,1,True,False,False
 facebookresearch/detectron2,s4,3,False,False,False
 faucetsdn/udmi,s1,1,True,False,False
 fighthealthinsurance/fighthealthinsurance,s2,5,True,False,False
